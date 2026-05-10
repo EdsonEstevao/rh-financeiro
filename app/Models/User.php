@@ -11,13 +11,13 @@ use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 use Spatie\Permission\Traits\HasRoles;
 
-use Database\Factories\UserFactory;
+// use Database\Factories\UserFactory;
 
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
+    /** @ use HasFactory<UserFactory> */
     use HasFactory, Notifiable, HasRoles, LogsActivity;
 
     /**
@@ -36,6 +36,7 @@ class User extends Authenticatable
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
+            ->useLogName('users')
             ->logOnly(['name', 'email'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();

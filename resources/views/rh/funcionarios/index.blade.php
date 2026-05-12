@@ -1,25 +1,25 @@
-<x-app-layout>
-    <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                {{ __('Funcionários') }}
-            </h2>
-            @can('funcionarios.gerenciar')
-                <a href="{{ route('rh.funcionarios.create') }}"
-                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                    Novo Funcionário
-                </a>
-            @endcan
-        </div>
-    </x-slot>
+@extends('layouts.app')
 
+@section('content')
     <div class="py-6">
+
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="flex justify-end mb-4 items-center">
+
+                @can('funcionarios.create')
+                    <a href="{{ route('rh.funcionarios.create') }}"
+                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        Novo Funcionário
+                    </a>
+                @endcan
+            </div>
             @if (session('success'))
                 <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
                     {{ session('success') }}
                 </div>
             @endif
+
+
 
             <!-- Filtros -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
@@ -34,8 +34,7 @@
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Departamento</label>
-                            <select name="departamento_id"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            <select name="departamento_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                                 <option value="">Todos</option>
                                 @foreach ($departamentos as $dept)
                                     <option value="{{ $dept->id }}"
@@ -100,7 +99,7 @@
                                     <td class="px-6 py-4 text-sm space-x-2">
                                         <a href="{{ route('rh.funcionarios.show', $funcionario) }}"
                                             class="text-blue-600 hover:text-blue-900">Ver</a>
-                                        @can('funcionarios.gerenciar')
+                                        @can('funcionarios.edit')
                                             <a href="{{ route('rh.funcionarios.edit', $funcionario) }}"
                                                 class="text-green-600 hover:text-green-900">Editar</a>
                                         @endcan
@@ -125,4 +124,4 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+@endsection

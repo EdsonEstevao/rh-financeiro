@@ -3,11 +3,13 @@
 namespace App\Services\RH;
 
 use Illuminate\Support\Facades\{DB, Log};
+use Illuminate\Support\Carbon;
 
 use App\Models\Domain\RH\Funcionario;
 
 class FuncionarioService
 {
+    public function __construct(protected PeriodoFeriasService $periodoFeriasService) {}
     /**
      * Criar funcionário com validações e cálculo automático de férias
      */
@@ -29,8 +31,104 @@ class FuncionarioService
                 'ferias_vencimento' => $funcionario->ferias_vencimento
             ]);
 
+            /**
+             * Cria funcionário e já registra um período de férias prevista (planejada)
+             * 12 meses após a admissão, por padrão 30 dias corridos.
+             */
+            $this->criarFeriasPrevistaAoAdmitir($funcionario);
+
             return $funcionario;
         });
+    }
+
+    private function criarFeriasPrevistaAoAdmitir(Funcionario $funcionario): void
+    {
+        $admissao = Carbon::parse($funcionario->data_admissao)->startOfDay();
+
+        // 12 meses depois, preservando o "dia" quando possível
+        // addYearNoOverflow evita cair em mês inválido (ex.: 31/03 -> 31/03 ok; 31/01 -> 31/01 ok; 31/08 -> 31/08 ok)
+        // mas para fevereiro, ele ajusta para o último dia do mês.
+        $inicioPrevisto = $admissao->copy()->addYearNoOverflow();
+
+        // Padrão: 30 dias corridos (ajuste se sua regra for 30 "dias de férias" e não corridos)
+        $fimPrevisto = $inicioPrevisto->copy()->addDays(29);
+
+        // Evitar duplicar caso o fluxo rode novamente
+        $jaExistePrevista = $funcionario->periodosFerias()
+            ->where('status', 'planejada')
+            ->whereDate('data_inicio', $inicioPrevisto->toDateString())
+            ->whereDate('data_fim', $fimPrevisto->toDateString())
+            ->exists();
+
+        if ($jaExistePrevista) {
+            return;
+        }
+
+        $this->periodoFeriasService->criarPeriodo($funcionario, [
+            'data_inicio' => $inicioPrevisto->toDateString(),
+            'data_fim'    => $fimPrevisto->toDateString(),
+            'status'      => 'planejada',
+            'observacao'  => 'Gerado automaticamente na admissão (férias previstas).',
+            'numero_periodo' => 1,
+            'abono_pecuniario' => false,
+        ]);
+    }
+
+    /**
+     * Atualiza funcionário e recalcula férias prevista se a data de admissão mudou
+     */
+    public function atualizar(Funcionario $funcionario, array $dados): Funcionario
+    {
+        return DB::transaction(function () use ($funcionario, $dados) {
+            $dataAdmissaoAnterior = $funcionario->data_admissao;
+
+            $funcionario->update($dados);
+
+            // Se mudou a data de admissão, recalcula as férias previstas
+            if (isset($dados['data_admissao']) && $dados['data_admissao'] != $dataAdmissaoAnterior) {
+                $this->criarOuAtualizarFeriasPrevista($funcionario->fresh());
+            }
+
+            return $funcionario->fresh();
+        });
+    }
+
+    /**
+     * Cria ou atualiza a férias prevista baseada na data de admissão
+     * Regra: 12 meses após admissão, sempre 30 dias corridos
+     */
+    private function criarOuAtualizarFeriasPrevista(Funcionario $funcionario): void
+    {
+        $admissao = Carbon::parse($funcionario->data_admissao)->startOfDay();
+
+        // 12 meses depois, preservando o "dia" quando possível
+        $inicioPrevisto = $admissao->copy()->addYearNoOverflow();
+
+        // Sempre 30 dias corridos (inicio + 29)
+        $fimPrevisto = $inicioPrevisto->copy()->addDays(29);
+
+        // Busca se já existe uma férias prevista para este funcionário
+        $feriasPrevista = $funcionario->periodosFerias()
+            ->where('tipo', 'prevista')
+            ->first();
+
+        $dadosPeriodo = [
+            'data_inicio' => $inicioPrevisto->toDateString(),
+            'data_fim'    => $fimPrevisto->toDateString(),
+            'tipo'        => 'prevista',
+            'status'      => 'planejada',
+            'observacao'  => 'Gerado automaticamente baseado na data de admissão.',
+            'numero_periodo' => 1,
+            'abono_pecuniario' => false,
+        ];
+
+        if ($feriasPrevista) {
+            // ATUALIZA a existente
+            $this->periodoFeriasService->atualizarPeriodo($feriasPrevista, $dadosPeriodo);
+        } else {
+            // CRIA nova
+            $this->periodoFeriasService->criarPeriodo($funcionario, $dadosPeriodo);
+        }
     }
 
     /**

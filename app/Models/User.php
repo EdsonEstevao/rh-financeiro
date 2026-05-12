@@ -42,4 +42,27 @@ class User extends Authenticatable
             ->dontLogEmptyChanges();
             //->dontSubmitEmptyLogs();
     }
+
+     /**
+     * Helpers de roles
+     */
+    public function isAdmin(): bool
+    {
+        return $this->hasRole('admin');
+    }
+
+    public function isRH(): bool
+    {
+        return $this->hasRole('rh');
+    }
+
+    public function isFinanceiro(): bool
+    {
+        return $this->hasRole('financeiro');
+    }
+
+    public function isGerente(): bool
+    {
+        return $this->hasRole('gerente');
+    }
 }

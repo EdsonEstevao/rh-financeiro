@@ -5,15 +5,19 @@ namespace App\Http\Requests\RH;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class FuncionarioStoreRequest extends FormRequest
+class FuncionarioUpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('funcionarios.create') ?? false;
+        return $this->user()?->can('funcionarios.edit') ?? false;
     }
 
     public function rules(): array
     {
+         $funcionarioId = $this->route('funcionario')->id;
+        //  $funcionarioId = $this->route('funcionario');
+
+        //  dd($funcionarioId);
         return [
             // Relacionamentos
             'departamento_id' => ['required', 'integer', 'exists:departamentos,id'],
@@ -22,7 +26,12 @@ class FuncionarioStoreRequest extends FormRequest
 
             // Dados Pessoais
             'nome_completo' => ['required', 'string', 'max:255'],
-            'cpf' => ['required', 'string', 'size:14', 'unique:funcionarios,cpf', 'regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/'],
+            'cpf' => [
+            'required',
+            'string',
+            'size:14',
+            'regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/',
+            'unique:funcionarios,cpf,' . $funcionarioId],
             'rg' => ['required', 'string', 'max:20'],
             'orgao_expedidor_rg' => ['nullable', 'string', 'max:10'],
             'data_nascimento' => ['required', 'date', 'before:today'],
@@ -34,7 +43,7 @@ class FuncionarioStoreRequest extends FormRequest
             // Contato
             'telefone' => ['required', 'string', 'max:15'],
             'celular' => ['required', 'string', 'max:15'],
-            'email' => ['required', 'email', 'unique:funcionarios,email'],
+            'email' => ['required', 'email', 'unique:funcionarios,email,' . $funcionarioId],
             'email_pessoal' => ['nullable', 'email'],
 
             // Endereço
@@ -60,6 +69,7 @@ class FuncionarioStoreRequest extends FormRequest
             'tipo_contrato' => ['required', Rule::in(['clt', 'temporario', 'aprendiz', 'estagio', 'terceirizado'])],
             'salario_base' => ['required', 'numeric', 'min:0'],
             'carga_horaria_semanal' => ['required', 'integer', 'min:1', 'max:44'],
+            'local_trabalho' => ['nullable', 'string', 'max:255'],
 
             // Horários
             'horario_entrada' => ['required', 'date_format:H:i'],

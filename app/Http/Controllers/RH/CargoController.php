@@ -2,68 +2,88 @@
 
 namespace App\Http\Controllers\RH;
 
-use Illuminate\Http\Request;
+use Illuminate\Http\{JsonResponse, RedirectResponse, Request};
+use Illuminate\View\View;
 
 use App\Http\Controllers\Controller;
 use App\Models\Domain\RH\Cargo;
 
 class CargoController extends Controller
 {
-    //
-    // public function index(Request $request)
-    // {
-    //     return view('rh.cargos.index');
-    // }
-    public function index()
+    /**
+     * Exibe a lista de cargos.
+     */
+    public function index(): View
     {
         $cargos = Cargo::orderBy('titulo', 'asc')->paginate(15);
         return view('rh.cargos.index', compact('cargos'));
     }
 
-    public function create()
+    /**
+     * Exibe o formulário para criar um novo cargo.
+     */
+    public function create(): View
     {
         return view('rh.cargos.create');
     }
 
-    public function store(Request $request)
+    /**
+     * Armazena um novo cargo no banco.
+     */
+    public function store(Request $request): RedirectResponse
     {
-        $request->validate([
+        $data = $request->validate([
             'titulo' => 'required|string|max:255|unique:cargos,titulo',
-            'ativo' => 'sometimes|boolean'
+            'ativo' => 'nullable|boolean',
         ]);
 
-        Cargo::create($request->only(['titulo', 'ativo']));
+        $data['ativo'] = $request->boolean('ativo');
+
+        Cargo::create($data);
 
         return redirect()->route('rh.cargos.index')
-                        ->with('success', 'Cargo criado com sucesso!');
+            ->with('success', 'Cargo criado com sucesso!');
     }
 
-    public function edit(Cargo $cargo)
+    /**
+     * Exibe o formulário para editar um cargo.
+     */
+    public function edit(Cargo $cargo): View
     {
         return view('rh.cargos.edit', compact('cargo'));
     }
 
-    public function update(Request $request, Cargo $cargo)
+    /**
+     * Atualiza um cargo existente.
+     */
+    public function update(Request $request, Cargo $cargo): RedirectResponse
     {
-        $request->validate([
+        $data = $request->validate([
             'titulo' => 'required|string|max:255|unique:cargos,titulo,' . $cargo->id,
-            'ativo' => 'sometimes|boolean'
+            'ativo' => 'nullable|boolean',
         ]);
 
-        $cargo->update($request->only(['titulo', 'ativo']));
+        $data['ativo'] = $request->boolean('ativo');
+
+        $cargo->update($data);
 
         return redirect()->route('rh.cargos.index')
-                        ->with('success', 'Cargo atualizado com sucesso!');
+            ->with('success', 'Cargo atualizado com sucesso!');
     }
 
-    public function destroy(Cargo $cargo)
+    /**
+     * Remove um cargo do banco.
+     */
+    public function destroy(Cargo $cargo): RedirectResponse
     {
-        if ($cargo->funcionarios()->count() > 0) {
-            return back()->with('error', 'Não é possível excluir cargo com funcionários vinculados.');
+        // Verificar se há funcionários vinculados
+        if ($cargo->funcionarios()->exists()) {
+            return back()->with('error', 'Não é possível excluir este cargo pois existem funcionários vinculados a ele.');
         }
 
         $cargo->delete();
+
         return redirect()->route('rh.cargos.index')
-                        ->with('success', 'Cargo excluído com sucesso!');
+            ->with('success', 'Cargo excluído com sucesso!');
     }
 }

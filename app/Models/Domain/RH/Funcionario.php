@@ -2,9 +2,8 @@
 
 namespace App\Models\Domain\RH;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\{Builder, Model};
 use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
-use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
@@ -18,27 +17,6 @@ class Funcionario extends Model
 
     protected $table = 'funcionarios';
 
-    /*
-     'user_id', 'departamento_id', 'cargo_id',
-        'nome_completo', 'cpf', 'rg', 'orgao_expedidor_rg', 'data_nascimento',
-        'estado_civil', 'genero', 'nacionalidade', 'naturalidade',
-        'telefone', 'celular', 'email', 'email_pessoal',
-        'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'estado',
-        'ctps_numero', 'ctps_serie', 'ctps_uf', 'ctps_data_emissao',
-        'pis_pasep', 'titulo_eleitor', 'zona_eleitoral', 'secao_eleitoral', 'certificado_reservista',
-        'data_admissao', 'data_demissao', 'tipo_contrato', 'tipo_contratacao', 'salario_base',
-        'carga_horaria_semanal', 'horario_entrada', 'horario_saida',
-        'horario_almoco_inicio', 'horario_almoco_fim',
-        'vale_transporte', 'valor_vale_transporte', 'vale_alimentacao', 'valor_vale_alimentacao',
-        'plano_saude', 'plano_odontologico',
-        'banco_codigo', 'banco_nome', 'agencia', 'conta', 'tipo_conta',
-        'qtd_dependentes_ir', 'qtd_dependentes_salario_familia',
-        'local_trabalho', 'desconto_inss_8_porcento', 'vale_extra', 'faltas',
-        'dsr_faltas', 'desconto_faltas', 'gratificacao_provento', 'dsr_hora_extra',
-        'salario_familia', 'hora_extra', 'sexto_dia_util_mes',
-        'periodo_aquisitivo_inicio', 'periodo_aquisitivo_fim', 'ferias_vencimento', 'ferias_em_dobro',
-        'ativo', 'observacoes'
-     */
 
      protected $fillable = [
         'user_id', 'departamento_id', 'cargo_id',
@@ -97,6 +75,10 @@ class Funcionario extends Model
             'sexto_dia_util_mes' => 'boolean',
             'eh_diarista' => 'boolean',
             'valor_diaria' => 'decimal:2',
+            "horario_entrada" => 'datetime:H:i:s',
+            "horario_saida" => 'datetime:H:i:s',
+            "horario_almoco_inicio" => 'datetime:H:i:s',
+            "horario_almoco_fim" => 'datetime:H:i:s',
 
         ];
     }
@@ -121,7 +103,7 @@ class Funcionario extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function periodosFerias(): HasMany
+    public function periodoFerias(): HasMany
     {
         return $this->hasMany(PeriodoFerias::class, 'funcionario_id');
     }
@@ -209,7 +191,7 @@ class Funcionario extends Model
 
         $tempo = [];
         if ($anos > 0) $tempo[] = "$anos ano" . ($anos > 1 ? 's' : '');
-        if ($meses > 0) $tempo[] = "$meses mês" . ($meses > 1 ? 'es' : '');
+        if ($meses > 0) $tempo[] = "$meses " . ($meses > 1 ? 'meses' : 'mês');
         if ($dias > 0 && $anos == 0) $tempo[] = "$dias dia" . ($dias > 1 ? 's' : '');
 
         return empty($tempo) ? '0 dias' : implode(', ', $tempo);

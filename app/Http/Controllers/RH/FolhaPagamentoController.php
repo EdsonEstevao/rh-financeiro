@@ -2,15 +2,20 @@
 
 namespace App\Http\Controllers\RH;
 
-use Illuminate\Http\Request;
+use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\Support\{Carbon, Collection};
+use Illuminate\View\View;
 
 use App\Http\Controllers\Controller;
-use App\Models\Domain\RH\{Cargo, Departamento, Funcionario};
+use App\Models\Domain\RH\{Cargo, Departamento, FolhaPagamento, Funcionario};
 use App\Services\RH\FolhaPagamentoService;
 use Barryvdh\DomPDF\Facade\Pdf;
+
 class FolhaPagamentoController extends Controller
 {
+    public function __construct(
+        protected FolhaPagamentoService $folhaService
+    ) {}
     //
     public function index(Request $request)
     {
@@ -35,16 +40,42 @@ class FolhaPagamentoController extends Controller
         // Totalizadores
         $totalizadores = $this->calcularTotalizadores($funcionarios->getCollection());
 
-        $departamentos = Departamento::qurey()->where('ativo', true)->orderBy('nome')->get();
+        $departamentos = Departamento::query()->where('ativo', true)->orderBy('nome')->get();
         $cargos = Cargo::query()->where('ativo', true)->orderBy('titulo')->get();
         $locaisTrabalho = Funcionario::query()->where('ativo', true)
                                    ->whereNotNull('local_trabalho')
                                    ->distinct()
                                    ->pluck('local_trabalho');
 
-        return view('rh.folha-pagamento.index', compact(
+        // Usando a nova view
+        return view('rh.funcionarios.folha-index', compact(
             'funcionarios', 'departamentos', 'cargos', 'locaisTrabalho', 'totalizadores'
         ));
+        // return view('rh.funcionarios.index', compact(
+        //     'funcionarios', 'departamentos', 'cargos', 'locaisTrabalho', 'totalizadores'
+        // ));
+    }
+
+    /**
+     * Calcula os totalizadores da lista de funcionários.
+     */
+    // private function calcularTotalizadores( $funcionarios): array
+    // {
+    //     return [
+    //         'total_funcionarios' => $funcionarios->count(),
+    //         'total_salario_base' => $funcionarios->sum('salario_base'),
+    //         'media_salarial' => $funcionarios->avg('salario_base'),
+    //         'total_ativos' => $funcionarios->where('ativo', true)->count(),
+    //     ];
+    // }
+
+    /**
+     * Exibe o formulário para calcular folha.
+     */
+    public function calcular()
+    {
+        $funcionarios = Funcionario::query()->where('ativo', true)->get();
+        return view('rh.folha-pagamento.calcular', compact('funcionarios'));
     }
 
     /**
@@ -55,6 +86,120 @@ class FolhaPagamentoController extends Controller
         $funcionario->load(['departamento', 'cargo', 'usuario']);
 
         return view('rh.folha-pagamento.show', compact('funcionario'));
+    }
+
+     /**
+     * Lista folhas de pagamento
+     */
+    // public function index(Request $request): View
+    // {
+    //     $folhas = FolhaPagamento::with('holerites.funcionario')
+    //         ->orderBy('competencia', 'desc')
+    //         ->paginate(12);
+
+    //     return view('rh.folhas.index', compact('folhas'));
+    // }
+
+    // /**
+    //  * Exibe detalhes da folha
+    //  */
+    // public function show(FolhaPagamento $folha): View
+    // {
+    //     $folha->load(['holerites.funcionario']);
+
+    //     $totais = [
+    //         'funcionarios' => $folha->holerites()->count(),
+    //         'salario_bruto' => $folha->totalSalarioBruto(),
+    //         'inss' => $folha->totalInss(),
+    //         'irrf' => $folha->totalIrrf(),
+    //         'salario_liquido' => $folha->totalSalarioLiquido(),
+    //     ];
+
+    //     return view('rh.folhas.show', compact('folha', 'totais'));
+    // }
+
+    /**
+     * Formulário para criar nova folha
+     */
+    public function create(): View
+    {
+        return view('rh.folha-pagamento.create');
+    }
+
+    /**
+     * Cria nova folha para uma competência
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'competencia' => ['required', 'date', 'date_format:Y-m-d'],
+        ]);
+
+        try {
+            $folha = $this->folhaService->criarOuBuscarFolha($request->competencia);
+
+            return redirect()
+                ->route('rh.folhas.show', $folha)
+                ->with('success', 'Folha de pagamento criada com sucesso!');
+
+        } catch (\Exception $e) {
+            return back()
+                ->withInput()
+                ->with('error', 'Erro ao criar folha: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Gera holerites para a folha
+     */
+    public function gerarHolerites(FolhaPagamento $folha, Request $request): RedirectResponse
+    {
+        $recalcular = $request->boolean('recalcular', false);
+
+        try {
+            $resultado = $this->folhaService->gerarHolerites($folha, $recalcular);
+
+            $message = "Holerites processados: {$resultado['processados']}";
+
+            if (!empty($resultado['erros'])) {
+                $message .= ". Erros: " . count($resultado['erros']);
+            }
+
+            return back()->with('success', $message);
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Erro ao gerar holerites: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Fecha a folha
+     */
+    public function fechar(FolhaPagamento $folha): RedirectResponse
+    {
+        try {
+            $this->folhaService->fecharFolha($folha);
+
+            return back()->with('success', 'Folha fechada com sucesso!');
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Erro ao fechar folha: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reabre a folha
+     */
+    public function reabrir(FolhaPagamento $folha): RedirectResponse
+    {
+        try {
+            $this->folhaService->reabrirFolha($folha);
+
+            return back()->with('success', 'Folha reaberta com sucesso!');
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Erro ao reabrir folha: ' . $e->getMessage());
+        }
     }
 
     /**

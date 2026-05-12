@@ -42,11 +42,11 @@ return new class extends Migration {
             $table->string('estado', 2);
 
             // Dados Trabalhistas
-            $table->string('ctps_numero', 20);
-            $table->string('ctps_serie', 10);
-            $table->string('ctps_uf', 2);
-            $table->date('ctps_data_emissao');
-            $table->string('pis_pasep', 15);
+            $table->string('ctps_numero', 20)->nullable();
+            $table->string('ctps_serie', 10)->nullable();
+            $table->string('ctps_uf', 2)->nullable();
+            $table->date('ctps_data_emissao')->nullable();
+            $table->string('pis_pasep', 15)->nullable();
             $table->string('titulo_eleitor', 15)->nullable();
             $table->string('zona_eleitoral', 10)->nullable();
             $table->string('secao_eleitoral', 10)->nullable();
@@ -70,10 +70,13 @@ return new class extends Migration {
             // 4) Valores-base (use apenas o que fizer sentido conforme tipo_remuneracao)
             // indicar se é diarista
             $table->boolean('eh_diarista')->default(false); // ou avalie pelo tipo_contratacao
-            $table->decimal('valor_diaria', 12, 2)->nullable();
+
 
 
             $table->decimal('salario_base', 12, 2);
+            // $table->decimal('desconto_inss_8_porcento', 8, 2)->default(0);
+            $table->boolean('aplica_inss')->default(true);
+
             $table->integer('carga_horaria_semanal')->default(44);
             $table->time('horario_entrada')->default('08:00:00');
             $table->time('horario_saida')->default('17:00:00');
@@ -84,6 +87,7 @@ return new class extends Migration {
             $table->boolean('vale_transporte')->default(false);
             $table->decimal('valor_vale_transporte', 8, 2)->nullable();
             $table->boolean('vale_alimentacao')->default(false);
+            $table->decimal('vale_extra', 8, 2)->default(0);
             $table->decimal('valor_vale_alimentacao', 8, 2)->nullable();
             $table->boolean('plano_saude')->default(false);
             $table->boolean('plano_odontologico')->default(false);
@@ -98,22 +102,26 @@ return new class extends Migration {
             // Dependentes e IR
             $table->integer('qtd_dependentes_ir')->default(0);
             $table->integer('qtd_dependentes_salario_familia')->default(0);
+            $table->integer('faltas')->default(0);
+            $table->decimal('dsr_faltas', 8, 2)->default(0);
+            $table->decimal('desconto_faltas', 8, 2)->default(0);
+            // Proventos extras
+            $table->decimal('gratificacao_provento', 8, 2)->default(0);
+            $table->decimal('dsr_hora_extra', 8, 2)->default(0);
+            $table->decimal('salario_familia', 8, 2)->default(0);
+            $table->decimal('hora_extra', 8, 2)->default(0);
+            $table->boolean('sexto_dia_util_mes')->default(false);
 
             // Campos específicos para folha de pagamento
             $table->string('local_trabalho')->nullable();
 
             // Valores e descontos
-            $table->decimal('desconto_inss_8_porcento', 8, 2)->default(0)->after('salario_base');
-            $table->decimal('vale_extra', 8, 2)->default(0)->after('valor_vale_alimentacao');
-            $table->integer('faltas')->default(0)->after('qtd_dependentes_salario_familia');
-            $table->decimal('dsr_faltas', 8, 2)->default(0)->after('faltas');
-            $table->decimal('desconto_faltas', 8, 2)->default(0)->after('dsr_faltas');
-            // Proventos extras
-            $table->decimal('gratificacao_provento', 8, 2)->default(0)->after('desconto_faltas');
-            $table->decimal('dsr_hora_extra', 8, 2)->default(0)->after('gratificacao_provento');
-            $table->decimal('salario_familia', 8, 2)->default(0)->after('dsr_hora_extra');
-            $table->decimal('hora_extra', 8, 2)->default(0)->after('salario_familia');
-            $table->boolean('sexto_dia_util_mes')->default(false)->after('hora_extra');
+
+
+
+
+
+
 
              // Férias (calculado automaticamente)
             $table->date('periodo_aquisitivo_inicio')->nullable();

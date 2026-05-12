@@ -4,7 +4,7 @@ namespace App\Http\Controllers\RH;
 
 use Illuminate\Http\Request;
 
-use App\Http\Requests\RH\FuncionarioStoreRequest;
+use App\Http\Requests\RH\{FuncionarioStoreRequest, FuncionarioUpdateRequest};
 use App\Http\Controllers\Controller;
 use App\Services\RH\FuncionarioService;
 use App\Models\Domain\RH\{Cargo, Departamento, Funcionario};
@@ -17,6 +17,8 @@ class FuncionarioController extends Controller
 
     public function index(Request $request)
     {
+
+
         $funcionarios = Funcionario::query()
             ->with(['departamento', 'cargo'])
             ->when($request->filled('search'), function ($query) use ($request) {
@@ -57,6 +59,7 @@ class FuncionarioController extends Controller
 
     public function create()
     {
+
         $departamentos = Departamento::query()->where('ativo', true)->orderBy('nome')->get();
         $cargos = Cargo::query()->where('ativo', true)->orderBy('titulo')->get();
 
@@ -80,21 +83,29 @@ class FuncionarioController extends Controller
 
     public function show(Funcionario $funcionario)
     {
-        $funcionario->load(['departamento', 'cargo', 'usuario']);
+        // $id = $funcionario->id;
+
+        $funcionario->loadMissing(['cargo', 'departamento', 'usuario', 'periodoFerias']); //load(['departamento', 'cargo', 'usuario']);
+        // $funcionario = Funcionario::with(['cargo', 'departamento', 'usuario', 'periodoFerias'])
+        //                             ->findOrFail($id);
 
         return view('rh.funcionarios.show', compact('funcionario'));
     }
 
     public function edit(Funcionario $funcionario)
     {
+        // dd($funcionario);
+
         $departamentos = Departamento::query()->where('ativo', true)->orderBy('nome')->get();
         $cargos = Cargo::query()->where('ativo', true)->orderBy('titulo')->get();
 
         return view('rh.funcionarios.edit', compact('funcionario', 'departamentos', 'cargos'));
     }
 
-    public function update(FuncionarioStoreRequest $request, Funcionario $funcionario)
+    public function update(FuncionarioUpdateRequest $request, Funcionario $funcionario)
     {
+        // dd($request->all());
+
         try {
             $funcionario = $this->funcionarioService->atualizarFuncionario($funcionario, $request->validated());
 

@@ -73,7 +73,7 @@
                 Voltar
             </a>
 
-            @can('update', $funcionario)
+            @can('funcionarios.edit', $funcionario)
                 <a href="{{ route('rh.funcionarios.edit', $funcionario) }}"
                     class="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors">
                     <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -132,12 +132,12 @@
                 <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Férias</p>
                 <p
                     class="mt-1 text-sm font-bold
-                @if ($funcionario->ferias_em_dobro) text-red-600
+                @if ($funcionario->ferias_vencidas) text-red-600
                 @elseif($funcionario->dias_para_vencimento_ferias <= 30 && $funcionario->dias_para_vencimento_ferias >= 0) text-amber-600
                 @else text-green-600 @endif">
                     {{ $funcionario->status_ferias }}
                 </p>
-                @if ($funcionario->ferias_vencimento)
+                @if ($funcionario->ferias_vencidas)
                     <p class="mt-1 text-xs text-gray-400">
                         Vencimento: {{ \Carbon\Carbon::parse($funcionario->ferias_vencimento)->format('d/m/Y') }}
                     </p>
@@ -435,8 +435,8 @@
                         <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
                             <x-rh.show-field label="Salário Base" :value="'R$ ' . number_format($funcionario->salario_base ?? 0, 2, ',', '.')" />
                             <x-rh.show-field label="Gratificação / Provento" :value="'R$ ' . number_format($funcionario->gratificacao_provento ?? 0, 2, ',', '.')" />
-                            <x-rh.show-field label="DSR Hora Extra" :value="'R$ ' . number_format($funcionario->dsr_hora_extra ?? 0, 2, ',', '.')" />
-                            <x-rh.show-field label="Hora Extra" :value="'R$ ' . number_format($funcionario->hora_extra ?? 0, 2, ',', '.')" />
+                            <x-rh.show-field label="DSR Hora Extra" :value="'R$ ' . number_format($funcionario->horas_extras_totais ?? 0, 2, ',', '.')" />
+                            <x-rh.show-field label="Hora Extra" :value="'R$ ' . number_format($funcionario->valor_hora_extra ?? 0, 2, ',', '.')" />
                             <x-rh.show-field label="Salário Família" :value="'R$ ' . number_format($funcionario->salario_familia ?? 0, 2, ',', '.')" />
                             <x-rh.show-field label="Vale Extra" :value="'R$ ' . number_format($funcionario->vale_extra ?? 0, 2, ',', '.')" />
                         </dl>
@@ -577,7 +577,7 @@
                     <div class="p-6">
                         <div
                             class="mb-5 flex items-start gap-4 rounded-lg border px-5 py-4
-                        @if ($funcionario->ferias_em_dobro) border-red-200 bg-red-50
+                        @if ($funcionario->ferias_vencidas) border-red-200 bg-red-50
                         @elseif($funcionario->dias_para_vencimento_ferias <= 30 && $funcionario->dias_para_vencimento_ferias >= 0) border-amber-200 bg-amber-50
                         @elseif(!$funcionario->temDireitoFerias()) border-gray-200 bg-gray-50
                         @else border-green-200 bg-green-50 @endif">

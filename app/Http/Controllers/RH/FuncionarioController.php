@@ -46,15 +46,16 @@ class FuncionarioController extends Controller
 
 
         // No controller ou direto na view
-        $alertasFerias = [
-            'vencendo_30_dias' => Funcionario::feriasVencendo(30)->count('id'),
-            'vencidas' => Funcionario::feriasVencidas()->count('id'),
-            'total_funcionarios' => Funcionario::ativos()->count('id')
-        ];
+        // $alertasFerias = [
+        //     'vencendo_30_dias' => Funcionario::feriasVencendo(30)->count('id'),
+        //     'vencidas' => Funcionario::feriasVencidas()->count('id'),
+        //     'total_funcionarios' => Funcionario::ativos()->count('id')
+        // ];
 
 
 
-        return view('rh.funcionarios.index', compact('funcionarios', 'departamentos', 'cargos', 'alertasFerias'));
+
+        return view('rh.funcionarios.index', compact('funcionarios', 'departamentos', 'cargos'));
     }
 
     public function create()
@@ -68,6 +69,7 @@ class FuncionarioController extends Controller
 
     public function store(FuncionarioStoreRequest $request)
     {
+        dd($request->all());
         try {
             $funcionario = $this->funcionarioService->criarFuncionario($request->validated());
 
@@ -94,10 +96,22 @@ class FuncionarioController extends Controller
 
     public function edit(Funcionario $funcionario)
     {
-        // dd($funcionario);
+        // $funcionario->load(['departamento', 'cargo', 'dependentes', 'periodoFerias']);
+           // Carrega TODOS os relacionamentos necessários
+        $funcionario->load([
+            'endereco',
+            'contatos',
+            'documentos',
+            'dadosBancarios',
+            'contrato',
+            'beneficios',
+            'dependentes', // ✅ ESSENCIAL!
+            'cargo',
+            'departamento',
+        ]);
 
-        $departamentos = Departamento::query()->where('ativo', true)->orderBy('nome')->get();
-        $cargos = Cargo::query()->where('ativo', true)->orderBy('titulo')->get();
+        $departamentos = Departamento::where('ativo', true)->orderBy('nome', 'asc')->get();
+        $cargos = Cargo::where('ativo', true)->orderBy('titulo', 'asc')->get();
 
         return view('rh.funcionarios.edit', compact('funcionario', 'departamentos', 'cargos'));
     }
@@ -108,6 +122,8 @@ class FuncionarioController extends Controller
 
         try {
             $funcionario = $this->funcionarioService->atualizarFuncionario($funcionario, $request->validated());
+
+
 
             return redirect()
                 ->route('rh.funcionarios.show', $funcionario)
@@ -128,5 +144,28 @@ class FuncionarioController extends Controller
         $feriasVencidas = Funcionario::feriasVencidas()->with(['departamento', 'cargo'])->get();
 
         return view('rh.funcionarios.relatorio-ferias', compact('feriasVencendo', 'feriasVencidas'));
+    }
+
+    public function buscar(Request $request)
+    {
+        $query = $request->input('q', '');
+        // $query = $request->q ?? '';
+
+        if (strlen($query) < 2) {
+            return response()->json([]);
+        }
+
+        $funcionarios = Funcionario::with(['contrato'])->where('status', 'ativo')
+            ->where(function($q) use ($query) {
+                $q->where('nome_completo', 'like', "%{$query}%");
+
+            })
+            // ->select('id', 'nome', 'matricula', 'cargo', 'salario_base', 'status')
+            ->limit(10)
+            ->get();
+
+        // dd($funcionarios);
+
+        return response()->json($funcionarios);
     }
 }

@@ -29,7 +29,7 @@ class PeriodoFeriasOldService
 
         // Sobreposição (intervalos inclusivos):
         // existe sobreposição se: inicio <= fimExistente AND fim >= inicioExistente
-        $existeSobreposicao = $funcionario->periodosFerias()
+        $existeSobreposicao = $funcionario->periodoFerias()
             ->whereNotIn('status', $statusIgnorados)
             ->whereDate('data_inicio', '<=', $fim->toDateString())
             ->whereDate('data_fim', '>=', $inicio->toDateString())
@@ -42,7 +42,7 @@ class PeriodoFeriasOldService
             ]);
         }
 
-        return $funcionario->periodosFerias()->create([
+        return $funcionario->periodoFerias()->create([
             'data_inicio'      => $inicio->toDateString(),
             'data_fim'         => $fim->toDateString(),
             'status'           => $dados['status'] ?? 'planejada',

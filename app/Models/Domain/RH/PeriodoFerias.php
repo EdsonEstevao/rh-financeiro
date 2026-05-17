@@ -2,9 +2,9 @@
 
 namespace App\Models\Domain\RH;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\{Builder, Model};
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Schema\Builder;
+
 
 class PeriodoFerias extends Model
 {

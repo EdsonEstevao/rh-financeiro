@@ -10,9 +10,7 @@ use App\Models\Domain\RH\{Funcionario, PeriodoFerias};
 class PeriodoFeriasService
 {
     /**
-     * Cria um período de férias para o funcionário garantindo:
-     * - datas válidas
-     * - sem sobreposição com outros períodos (exceto cancelados)
+     * Cria um período de férias validando datas e sobreposição.
      */
     public function criarPeriodo(Funcionario $funcionario, array $dados): PeriodoFerias
     {
@@ -25,21 +23,30 @@ class PeriodoFeriasService
             ]);
         }
 
-        $this->validarSobreposicao($funcionario, $inicio, $fim);
+        // Ignora sobreposição com o próprio tipo 'prevista' ao recriar automaticamente
+        $ignorarTipo = $dados['tipo'] === 'prevista' ? 'prevista' : null;
 
-        return $funcionario->periodosFerias()->create([
-            'data_inicio'      => $inicio->toDateString(),
-            'data_fim'         => $fim->toDateString(),
-            'tipo'             => $dados['tipo'] ?? 'programada',
-            'status'           => $dados['status'] ?? 'planejada',
-            'abono_pecuniario' => (bool)($dados['abono_pecuniario'] ?? false),
-            'observacao'       => $dados['observacao'] ?? null,
-            'numero_periodo'   => (int)($dados['numero_periodo'] ?? 1),
+        $this->validarSobreposicao($funcionario, $inicio, $fim, null, $ignorarTipo);
+
+        // numero_periodo: usa o informado ou calcula automaticamente
+        $numeroPeriodo = isset($dados['numero_periodo'])
+            ? (int)$dados['numero_periodo']
+            : (($funcionario->periodoFerias()->max('numero_periodo') ?? 0) + 1);
+
+        return $funcionario->periodoFerias()->create([
+            'data_inicio'       => $inicio->toDateString(),
+            'data_fim'          => $fim->toDateString(),
+            'tipo'              => $dados['tipo']              ?? 'programada',
+            'status'            => $dados['status']            ?? 'planejada',
+            'abono_pecuniario'  => (bool)($dados['abono_pecuniario']  ?? false),
+            'observacao'        => $dados['observacao']        ?? null,
+            'numero_periodo'    => $numeroPeriodo,
+            'ferias_vencimento' => $dados['ferias_vencimento'] ?? null, // ✅
         ]);
     }
 
     /**
-     * Atualiza um período existente validando sobreposição (exceto consigo mesmo)
+     * Atualiza um período existente validando sobreposição (exceto consigo mesmo).
      */
     public function atualizarPeriodo(PeriodoFerias $periodo, array $dados): PeriodoFerias
     {
@@ -52,35 +59,61 @@ class PeriodoFeriasService
             ]);
         }
 
-        $this->validarSobreposicao($periodo->funcionario, $inicio, $fim, $periodo->id);
+        // ✅ Carrega o relacionamento para evitar N+1
+        $funcionario = $periodo->funcionario ?? $periodo->funcionario()->first();
+
+        $this->validarSobreposicao($funcionario, $inicio, $fim, $periodo->id);
 
         $periodo->update([
-            'data_inicio'      => $inicio->toDateString(),
-            'data_fim'         => $fim->toDateString(),
-            'tipo'             => $dados['tipo'] ?? $periodo->tipo,
-            'status'           => $dados['status'] ?? $periodo->status,
-            'abono_pecuniario' => isset($dados['abono_pecuniario']) ? (bool)$dados['abono_pecuniario'] : $periodo->abono_pecuniario,
-            'observacao'       => $dados['observacao'] ?? $periodo->observacao,
-            'numero_periodo'   => isset($dados['numero_periodo']) ? (int)$dados['numero_periodo'] : $periodo->numero_periodo,
+            'data_inicio'       => $inicio->toDateString(),
+            'data_fim'          => $fim->toDateString(),
+            'tipo'              => $dados['tipo']             ?? $periodo->tipo,
+            'status'            => $dados['status']           ?? $periodo->status,
+            'abono_pecuniario'  => isset($dados['abono_pecuniario'])
+                                    ? (bool)$dados['abono_pecuniario']
+                                    : $periodo->abono_pecuniario,
+            'observacao'        => $dados['observacao']       ?? $periodo->observacao,
+            'numero_periodo'    => isset($dados['numero_periodo'])
+                                    ? (int)$dados['numero_periodo']
+                                    : $periodo->numero_periodo,
+
+        ]);
+
+        $periodo->funcionario->update([
+            'ferias_vencimento' => $dados['ferias_vencimento'] ?? $periodo->ferias_vencimento, // ✅
         ]);
 
         return $periodo->fresh();
     }
 
     /**
-     * Valida sobreposição de períodos
+     * Valida sobreposição de períodos de férias.
+     *
+     * @param Funcionario $funcionario
+     * @param Carbon      $inicio
+     * @param Carbon      $fim
+     * @param int|null    $excluirId    — ignora o próprio registro ao atualizar
+     * @param string|null $ignorarTipo  — ignora períodos de determinado tipo (ex: 'prevista')
      */
-    private function validarSobreposicao(Funcionario $funcionario, Carbon $inicio, Carbon $fim, ?int $excluirId = null): void
-    {
-        $statusIgnorados = ['cancelada'];
-
-        $query = $funcionario->periodosFerias()
-            ->whereNotIn('status', $statusIgnorados)
+    private function validarSobreposicao(
+        Funcionario $funcionario,
+        Carbon $inicio,
+        Carbon $fim,
+        ?int $excluirId = null,
+        ?string $ignorarTipo = null
+    ): void {
+        $query = $funcionario->periodoFerias()
+            ->whereNotIn('status', ['cancelada'])
             ->whereDate('data_inicio', '<=', $fim->toDateString())
             ->whereDate('data_fim', '>=', $inicio->toDateString());
 
         if ($excluirId) {
             $query->where('id', '!=', $excluirId);
+        }
+
+        // ✅ Permite ignorar tipo específico (ex: prevista sendo recriada)
+        if ($ignorarTipo) {
+            $query->where('tipo', '!=', $ignorarTipo);
         }
 
         if ($query->exists()) {
@@ -92,7 +125,7 @@ class PeriodoFeriasService
     }
 
     /**
-     * Dias corridos do período (inclusivo).
+     * Retorna dias corridos do período (inclusivo).
      */
     public function diasDoPeriodo(PeriodoFerias $periodo): int
     {

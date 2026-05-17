@@ -5,6 +5,9 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
+use Database\Seeders\FolhaPagamentoSeeder;
+
+
 class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
@@ -24,6 +27,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolesAndPermissionsSeeder::class,
             DadosTesteSeeder::class,
+            FolhaPagamentoSeeder::class
         ]);
     }
 }

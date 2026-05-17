@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('holerites', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('folha_pagamento_id')->constrained('folhas_pagamento')->cascadeOnDelete();
+            $table->foreignId('folha_pagamento_id')->constrained('folha_pagamentos')->cascadeOnDelete();
             $table->foreignId('funcionario_id')->constrained('funcionarios')->cascadeOnDelete();
 
             $table->decimal('salario_bruto', 10, 2)->default(0);

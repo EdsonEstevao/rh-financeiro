@@ -4,20 +4,19 @@
     <div class="py-6">
 
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="flex justify-end mb-4 items-center">
+            {{-- Header --}}
+            <div class="mb-6 flex items-center justify-between">
 
+                <h1 class="text-2xl font-bold text-gray-900">Funcionários </h1>
                 @can('funcionarios.create')
                     <a href="{{ route('rh.funcionarios.create') }}"
                         class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                         Novo Funcionário
                     </a>
                 @endcan
+
+
             </div>
-            @if (session('success'))
-                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-                    {{ session('success') }}
-                </div>
-            @endif
 
 
 

@@ -52,6 +52,8 @@ Route::middleware(['auth', 'verified'])
                 Route::get('/funcionarios/{funcionario}/edit', [FuncionarioController::class, 'edit'])->name('funcionarios.edit')->middleware('permission:funcionarios.edit');
                 Route::put('/funcionarios/{funcionario}', [FuncionarioController::class, 'update'])->name('funcionarios.update')->middleware('permission:funcionarios.edit');
                 Route::delete('/funcionarios/{funcionario}', [FuncionarioController::class, 'destroy'])->name('funcionarios.destroy')->middleware('permission:funcionarios.delete');
+
+                Route::get('/funcionarios/buscar', [FuncionarioController::class, 'buscar'])->name('funcionarios.buscar');
             // });
 
 
@@ -71,7 +73,7 @@ Route::middleware(['auth', 'verified'])
         // ===================
         // Departamentos (Resource)
         // ===================
-        Route::middleware('permission:departamentos.gerenciar')->group(function () {
+        Route::middleware('permission:departamentos.view')->group(function () {
             Route::resource('departamentos', DepartamentoController::class)->except(['show']);
         });
 
@@ -85,19 +87,24 @@ Route::middleware(['auth', 'verified'])
         // ===================
         // Folha de Pagamento
         // ===================
-        // Visualização
-        Route::middleware('permission:folha.view')->group(function () {
-            Route::get('/folha-pagamento', [FolhaPagamentoController::class, 'index'])->name('folha-pagamento.index');
-
-            Route::get('/folha-pagamento/calcular', [FolhaPagamentoController::class, 'calcular'])->name('folha-pagamento.calcular');
-            Route::get('/folha-pagamento/{folha}', [FolhaPagamentoController::class, 'show'])->name('folha-pagamento.show');
-        });
 
         // Criação
-        Route::middleware('permission:folha.create')->group(function () {
-            Route::get('/folha-pagamento/create', [FolhaPagamentoController::class, 'create'])->name('folha-pagamento.create');
-            Route::post('/folha-pagamento', [FolhaPagamentoController::class, 'store'])->name('folha-pagamento.store');
-        });
+        // Route::middleware('permission:folha.create')->group(function () {
+            Route::get('/folha-pagamento', [FolhaPagamentoController::class, 'index'])->name('folha-pagamento.index')->middleware('permission:folha.view');
+            Route::get('/folha-pagamento/create', [FolhaPagamentoController::class, 'createNew'])->name('folha-pagamento.create');
+            Route::get('/folha-pagamento/buscar', [FolhaPagamentoController::class, 'buscar'])->name('folha-pagamento.buscar');
+            Route::get('/folha-pagamento/calendario', [FolhaPagamentoController::class, 'calendario'])->name('folha-pagamento.calendario');
+            Route ::get('/folha-pagamento/resumo', [FolhaPagamentoController::class, 'resumo'])->name('folha-pagamento.resumo')->middleware('permission:folha.view');
+            Route::get('/folha-pagamento/resumo-geral', [FolhaPagamentoController::class, 'resumoGeral'])->name('folha-pagamento.resumo-geral')->middleware('permission:folha.view');
+
+            Route::get('/folha-pagamento/verificar', [FolhaPagamentoController::class, 'verificarFolhaExistente'])->name('folha-pagamento.verificar');
+
+            Route::get('/folha-pagamento/{folha}', [FolhaPagamentoController::class, 'showNew'])->name('folha-pagamento.show')->middleware('permission:folha.view');
+            Route::post('/folha-pagamento', [FolhaPagamentoController::class, 'storeNew'])->name('folha-pagamento.store');
+            Route::get('/folha-pagamento/{folha}/edit', [FolhaPagamentoController::class, 'edit'])->name('folha-pagamento.edit')->middleware('permission:folha.generate');
+            Route::put('/folha-pagamento/{folha}', [FolhaPagamentoController::class, 'update'])->name('folha-pagamento.update')->middleware('permission:folha.generate');
+            Route::delete('/folha-pagamento/{folha}', [FolhaPagamentoController::class, 'destroy'])->name('folha-pagamento.destroy')->middleware('permission:folha.close');
+        // });
 
         // Geração de holerites
         Route::middleware('permission:folha.generate')->group(function () {
@@ -118,6 +125,13 @@ Route::middleware(['auth', 'verified'])
         Route::get('/folha-pagamento/diaristas/pdf', [FolhaPagamentoController::class, 'exportarFolhaDiaristasPdf'])
             ->middleware('can:ver_folha_rh')
             ->name('folha-pagamento.diaristas.pdf');
+
+         // PDFs
+        Route::get('folha-pagamento/{folhaPagamento}/pdf',[FolhaPagamentoController::class, 'pdf'])->name('folha-pagamento.pdf');
+
+        Route::get('folha-pagamento-geral/pdf', [FolhaPagamentoController::class, 'pdfGeral'])->name('folha-pagamento.pdf.geral');
+
+
     });
 
 

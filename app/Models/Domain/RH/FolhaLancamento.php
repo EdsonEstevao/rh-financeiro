@@ -7,6 +7,47 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 use App\Models\User;
 
+/**
+ * @property int $id
+ * @property int $folha_pagamento_id
+ * @property string $categoria
+ * @property string $tipo
+ * @property string $descricao
+ * @property numeric $quantidade
+ * @property numeric $valor_unitario
+ * @property numeric $percentual_acrescimo
+ * @property numeric $valor_total
+ * @property \Illuminate\Support\Carbon|null $data_referencia
+ * @property string|null $observacao
+ * @property bool $automatico
+ * @property int|null $criado_por
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read User|null $criador
+ * @property-read \App\Models\Domain\RH\FolhaPagamento $folhaPagamento
+ * @method static Builder<static>|FolhaLancamento descontos()
+ * @method static Builder<static>|FolhaLancamento doTipo(string $tipo)
+ * @method static Builder<static>|FolhaLancamento newModelQuery()
+ * @method static Builder<static>|FolhaLancamento newQuery()
+ * @method static Builder<static>|FolhaLancamento proventos()
+ * @method static Builder<static>|FolhaLancamento query()
+ * @method static Builder<static>|FolhaLancamento whereAutomatico($value)
+ * @method static Builder<static>|FolhaLancamento whereCategoria($value)
+ * @method static Builder<static>|FolhaLancamento whereCreatedAt($value)
+ * @method static Builder<static>|FolhaLancamento whereCriadoPor($value)
+ * @method static Builder<static>|FolhaLancamento whereDataReferencia($value)
+ * @method static Builder<static>|FolhaLancamento whereDescricao($value)
+ * @method static Builder<static>|FolhaLancamento whereFolhaPagamentoId($value)
+ * @method static Builder<static>|FolhaLancamento whereId($value)
+ * @method static Builder<static>|FolhaLancamento whereObservacao($value)
+ * @method static Builder<static>|FolhaLancamento wherePercentualAcrescimo($value)
+ * @method static Builder<static>|FolhaLancamento whereQuantidade($value)
+ * @method static Builder<static>|FolhaLancamento whereTipo($value)
+ * @method static Builder<static>|FolhaLancamento whereUpdatedAt($value)
+ * @method static Builder<static>|FolhaLancamento whereValorTotal($value)
+ * @method static Builder<static>|FolhaLancamento whereValorUnitario($value)
+ * @mixin \Eloquent
+ */
 class FolhaLancamento extends Model
 {
     protected $table = 'folha_lancamentos';
@@ -119,4 +160,6 @@ class FolhaLancamento extends Model
             }
         });
     }
+
+    
 }

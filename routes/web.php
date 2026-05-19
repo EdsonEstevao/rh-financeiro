@@ -2,15 +2,16 @@
 
 use Illuminate\Support\Facades\Route;
 
-use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Admin\{ActivityLogController, PermissionController, RoleController, UserController};
 use App\Http\Controllers\RH\{CargoController, DepartamentoController, FolhaPagamentoController, FuncionarioController, PeriodoFeriasController};
+use App\Http\Controllers\ProfileController;
 
+
+// Route::get('/', function () {
+//     return view('welcome');
+// });
 
 Route::get('/', function () {
-    return view('welcome');
-});
-
-Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -66,9 +67,20 @@ Route::middleware(['auth', 'verified'])
         | Férias dos Funcionários (Nested Resource)
         |--------------------------------------------------------------------------
         */
-        Route::resource('funcionarios.periodos-ferias', PeriodoFeriasController::class)
-            ->middleware(['auth'])
-            ->parameters(['funcionarios' => 'funcionario']);
+        // Route::resource('funcionarios.periodos-ferias', PeriodoFeriasController::class)
+        //     ->middleware(['auth'])
+        //     ->parameters(['funcionarios' => 'funcionario']);
+
+
+        // Férias
+        Route::get('/ferias', [PeriodoFeriasController::class, 'index'])->name('ferias.index')->middleware('permission:ferias.view');
+        Route::get('/ferias/dashboard', [PeriodoFeriasController::class, 'dashboard'])->name('ferias.dashboard');
+        Route::get('/ferias/create', [PeriodoFeriasController::class, 'create'])->name('ferias.create');
+        Route::get('/ferias/{periodo}/edit', [PeriodoFeriasController::class, 'edit'])->name('ferias.edit');
+        Route::put('/ferias/{periodo}', [PeriodoFeriasController::class, 'update'])->name('ferias.update');
+        Route::get('/ferias/{periodo}', [PeriodoFeriasController::class, 'show'])->name('ferias.show');
+        Route::delete('/ferias/{periodo}', [PeriodoFeriasController::class, 'destroy'])->name('ferias.destroy');
+        Route::post('/ferias/{funcionario}/gerar', [PeriodoFeriasController::class, 'gerarNovoPeriodo'])->name('ferias.gerar');
 
         // ===================
         // Departamentos (Resource)
@@ -132,8 +144,61 @@ Route::middleware(['auth', 'verified'])
         Route::get('folha-pagamento-geral/pdf', [FolhaPagamentoController::class, 'pdfGeral'])->name('folha-pagamento.pdf.geral');
 
 
-    });
 
+
+
+    });
+    // ============================================
+    // 🔐 MÓDULO ADMIN (USUÁRIOS, PERFIS, PERMISSÕES)
+    // ============================================
+    Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function () {
+
+        // 👥 Usuários
+        Route::get('/users', [UserController::class, 'index'])
+            ->name('users.index');
+        Route::get('/users/create', [UserController::class, 'create'])
+            ->name('users.create');
+        Route::post('/users', [UserController::class, 'store'])
+            ->name('users.store');
+        Route::get('/users/{user}/edit', [UserController::class, 'edit'])
+            ->name('users.edit');
+        Route::put('/users/{user}', [UserController::class, 'update'])
+            ->name('users.update');
+        Route::delete('/users/{user}', [UserController::class, 'destroy'])
+            ->name('users.destroy');
+
+        // 🔑 Perfis (Roles)
+        Route::get('/roles', [RoleController::class, 'index'])
+            ->name('roles.index');
+        Route::get('/roles/create', [RoleController::class, 'create'])
+            ->name('roles.create');
+        Route::post('/roles', [RoleController::class, 'store'])
+            ->name('roles.store');
+        Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])
+            ->name('roles.edit');
+        Route::put('/roles/{role}', [RoleController::class, 'update'])
+            ->name('roles.update');
+        Route::delete('/roles/{role}', [RoleController::class, 'destroy'])
+            ->name('roles.destroy');
+
+        // 🔒 Permissões
+        Route::get('/permissions', [PermissionController::class, 'index'])
+            ->name('permissions.index');
+        Route::get('/permissions/create', [PermissionController::class, 'create'])
+            ->name('permissions.create');
+        Route::post('/permissions', [PermissionController::class, 'store'])
+            ->name('permissions.store');
+        Route::get('/permissions/{permission}/edit', [PermissionController::class, 'edit'])
+            ->name('permissions.edit');
+        Route::put('/permissions/{permission}', [PermissionController::class, 'update'])
+            ->name('permissions.update');
+        Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])
+            ->name('permissions.destroy');
+
+        // 📝 Logs de atividade
+        Route::get('/activity-logs', [ActivityLogController::class, 'index'])
+            ->name('activity-logs.index');
+    });
 
 
 /*

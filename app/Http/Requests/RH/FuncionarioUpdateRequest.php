@@ -14,10 +14,14 @@ class FuncionarioUpdateRequest extends FormRequest
 
     public function rules(): array
     {
-         $funcionarioId = $this->route('funcionario')->id;
-        //  $funcionarioId = $this->route('funcionario');
+         $funcionario = $this->route('funcionario');
 
-        //  dd($funcionarioId);
+
+         $documentoId = $funcionario->documentos?->id;
+         $contatoId = $funcionario->contatos?->id;
+
+
+
         return [
             // Relacionamentos
             'departamento_id' => ['required', 'integer', 'exists:departamentos,id'],
@@ -31,8 +35,8 @@ class FuncionarioUpdateRequest extends FormRequest
             'string',
             'size:14',
             'regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/',
-            'unique:funcionarios,cpf,' . $funcionarioId],
-            'rg' => ['required', 'string', 'max:20'],
+            Rule::unique('funcionario_documentos', 'cpf')->ignore($documentoId ?? null)],
+            'rg' => ['nullable', 'string', 'max:20'],
             'orgao_expedidor_rg' => ['nullable', 'string', 'max:10'],
             'data_nascimento' => ['required', 'date', 'before:today'],
             'estado_civil' => ['required', Rule::in(['solteiro', 'casado', 'divorciado', 'viuvo', 'uniao_estavel'])],
@@ -43,8 +47,11 @@ class FuncionarioUpdateRequest extends FormRequest
             // Contato
             'telefone' => ['required', 'string', 'max:15'],
             'celular' => ['required', 'string', 'max:15'],
-            'email' => ['required', 'email', 'unique:funcionarios,email,' . $funcionarioId],
+            'email' => ['required', 'email',
+            Rule::unique('funcionario_contatos', 'email')->ignore($contatoId ?? null)],
             'email_pessoal' => ['nullable', 'email'],
+
+
 
             // Endereço
             'cep' => ['required', 'string', 'regex:/^\d{5}-\d{3}$/'],
@@ -56,22 +63,30 @@ class FuncionarioUpdateRequest extends FormRequest
             'estado' => ['required', 'string', 'size:2'],
 
             // Dados Trabalhistas
-            'ctps_numero' => ['required', 'string', 'max:20'],
-            'ctps_serie' => ['required', 'string', 'max:10'],
-            'ctps_uf' => ['required', 'string', 'size:2'],
-            'ctps_data_emissao' => ['required', 'date', 'before_or_equal:today'],
-            'pis_pasep' => ['required', 'string', 'max:15'],
+            'ctps_numero' => ['nullable', 'string', 'max:20'],
+            'ctps_serie' => ['nullable', 'string', 'max:10'],
+            'ctps_uf' => ['nullable', 'string', 'size:2'],
+            'ctps_data_emissao' => ['nullable', 'date', 'before_or_equal:today'],
+            'pis_pasep' => ['nullable', 'string', 'max:15'],
             'titulo_eleitor' => ['nullable', 'string', 'max:15'],
             'certificado_reservista' => ['nullable', 'string', 'max:20'],
 
             // Contrato
             'data_admissao' => ['required', 'date', 'before_or_equal:today'],
-            'tipo_contrato' => ['required', Rule::in(['clt', 'temporario', 'aprendiz', 'estagio', 'terceirizado'])],
-            'salario_base' => ['required', 'numeric', 'min:0'],
-            'carga_horaria_semanal' => ['required', 'integer', 'min:1', 'max:44'],
+            'tipo_contratacao' => ['required', Rule::in(['clt', 'pj', 'autonomo', 'avulso', 'estatutario'])],
+            'tipo_contrato' => ['required', Rule::in(['indeterminado', 'determinado', 'experiencia', 'intermitente', 'temporario', 'aprendiz', 'estagio'])],
+            
             'local_trabalho' => ['nullable', 'string', 'max:255'],
-
-            // Horários
+            
+            // Remuneração
+            'tipo_remuneracao' => ['required', Rule::in(['mensal', 'diaria', 'horaria'])],
+            'salario_base' => ['nullable', 'numeric', 'min:0', 'required_if:tipo_remuneracao,mensal'],
+            'valor_diaria' => ['nullable', 'numeric', 'min:0', 'required_if:tipo_remuneracao,diaria'],
+            'valor_hora'   => ['nullable', 'numeric', 'min:0', 'required_if:tipo_remuneracao,horaria'],
+            'eh_diarista' => ['sometimes', 'boolean'],
+            
+            // Jornada de Trabalho/ Horários
+            'carga_horaria_semanal' => ['required', 'integer', 'min:1', 'max:44'],
             'horario_entrada' => ['required', 'date_format:H:i'],
             'horario_saida' => ['required', 'date_format:H:i'],
             'horario_almoco_inicio' => ['required', 'date_format:H:i'],
@@ -93,8 +108,8 @@ class FuncionarioUpdateRequest extends FormRequest
             'tipo_conta' => ['required', Rule::in(['corrente', 'poupanca'])],
 
             // Dependentes
-            'qtd_dependentes_ir' => ['required', 'integer', 'min:0', 'max:10'],
-            'qtd_dependentes_salario_familia' => ['required', 'integer', 'min:0', 'max:10'],
+            'qtd_dependentes_ir' => ['nullable', 'integer', 'min:0', 'max:10'],
+            'qtd_dependentes_salario_familia' => ['nullable', 'integer', 'min:0', 'max:10'],
 
             // Observações
             'observacoes' => ['nullable', 'string', 'max:1000'],
@@ -126,6 +141,10 @@ class FuncionarioUpdateRequest extends FormRequest
             'tipo_conta' => 'tipo da conta',
             'qtd_dependentes_ir' => 'quantidade de dependentes para IR',
             'qtd_dependentes_salario_familia' => 'quantidade de dependentes para salário família',
+            'tipo_remuneracao' => 'tipo de remuneração',
+            'valor_diaria' => 'valor da diária',
+            'valor_hora' => 'valor da hora',
+            'eh_diarista' => 'diarista',
         ];
     }
 
@@ -136,6 +155,7 @@ class FuncionarioUpdateRequest extends FormRequest
             'cep.regex' => 'O CEP deve estar no formato XXXXX-XXX',
             'data_nascimento.before' => 'A data de nascimento deve ser anterior a hoje',
             'data_admissao.before_or_equal' => 'A data de admissão não pode ser futura',
+            'required_if' => 'O campo :attribute é obrigatório para o tipo de remuneração selecionado.',
         ];
     }
 }

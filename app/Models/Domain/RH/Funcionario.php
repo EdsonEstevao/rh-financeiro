@@ -13,6 +13,104 @@ use App\Models\User;
 
 
 
+/**
+ * @property int $id
+ * @property int|null $user_id
+ * @property int $departamento_id
+ * @property int $cargo_id
+ * @property string $nome_completo
+ * @property Carbon $data_nascimento
+ * @property string $estado_civil
+ * @property string $genero
+ * @property string $nacionalidade
+ * @property string|null $naturalidade
+ * @property Carbon|null $periodo_aquisitivo_inicio
+ * @property Carbon|null $periodo_aquisitivo_fim
+ * @property Carbon|null $ferias_vencimento
+ * @property bool $ferias_vencidas
+ * @property bool $ferias_em_dobro
+ * @property bool $ativo
+ * @property string|null $observacoes
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \Spatie\Activitylog\Models\Activity> $activitiesAsSubject
+ * @property-read int|null $activities_as_subject_count
+ * @property-read \App\Models\Domain\RH\FuncionarioBeneficio|null $beneficios
+ * @property-read \App\Models\Domain\RH\Cargo $cargo
+ * @property-read \App\Models\Domain\RH\FuncionarioContato|null $contatos
+ * @property-read \App\Models\Domain\RH\FuncionarioContrato|null $contrato
+ * @property-read \App\Models\Domain\RH\FuncionarioDadosBancarios|null $dadosBancarios
+ * @property-read \App\Models\Domain\RH\Departamento $departamento
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Domain\RH\Dependente> $dependentes
+ * @property-read int|null $dependentes_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Domain\RH\Diaria> $diarias
+ * @property-read int|null $diarias_count
+ * @property-read \App\Models\Domain\RH\FuncionarioDocumento|null $documentos
+ * @property-read \App\Models\Domain\RH\FuncionarioEndereco|null $endereco
+ * @property-read mixed $ferias_vencidas_old
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Domain\RH\FolhaPagamento> $folhasPagamento
+ * @property-read int|null $folhas_pagamento_count
+ * @property-read mixed $agencia
+ * @property-read mixed $banco_nome
+ * @property-read mixed $carga_horaria_semanal
+ * @property-read mixed $celular
+ * @property-read mixed $cep
+ * @property-read mixed $cidade
+ * @property-read mixed $conta
+ * @property-read mixed $cpf
+ * @property-read mixed $ctps_numero
+ * @property-read mixed $data_admissao
+ * @property-read int|null $dias_para_vencimento_ferias
+ * @property-read mixed $email
+ * @property-read mixed $estado
+ * @property-read mixed $local_trabalho
+ * @property-read mixed $logradouro
+ * @property-read mixed $pis_pasep
+ * @property-read mixed $qtd_dependentes_salario_familia
+ * @property-read mixed $rg
+ * @property-read mixed $salario_base
+ * @property-read float $salario_bruto
+ * @property-read float $salario_liquido
+ * @property-read string $sexto_dia_util_status
+ * @property-read string $status_ferias
+ * @property-read mixed $get_status_ferias_attribute_old
+ * @property-read mixed $telefone
+ * @property-read string $tempo_empresa
+ * @property-read mixed $tipo_contratacao
+ * @property-read mixed $tipo_contrato
+ * @property-read string $tipo_contrato_label
+ * @property-read float $total_descontos
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Domain\RH\PeriodoFerias> $periodoFerias
+ * @property-read int|null $periodo_ferias_count
+ * @property-read User|null $usuario
+ * @method static Builder<static>|Funcionario ativos()
+ * @method static Builder<static>|Funcionario feriasVencendo(int $dias = 30)
+ * @method static Builder<static>|Funcionario feriasVencidas()
+ * @method static Builder<static>|Funcionario feriasVencidasEmDobro()
+ * @method static Builder<static>|Funcionario newModelQuery()
+ * @method static Builder<static>|Funcionario newQuery()
+ * @method static Builder<static>|Funcionario query()
+ * @method static Builder<static>|Funcionario whereAtivo($value)
+ * @method static Builder<static>|Funcionario whereCargoId($value)
+ * @method static Builder<static>|Funcionario whereCreatedAt($value)
+ * @method static Builder<static>|Funcionario whereDataNascimento($value)
+ * @method static Builder<static>|Funcionario whereDepartamentoId($value)
+ * @method static Builder<static>|Funcionario whereEstadoCivil($value)
+ * @method static Builder<static>|Funcionario whereFeriasEmDobro($value)
+ * @method static Builder<static>|Funcionario whereFeriasVencidas($value)
+ * @method static Builder<static>|Funcionario whereFeriasVencimento($value)
+ * @method static Builder<static>|Funcionario whereGenero($value)
+ * @method static Builder<static>|Funcionario whereId($value)
+ * @method static Builder<static>|Funcionario whereNacionalidade($value)
+ * @method static Builder<static>|Funcionario whereNaturalidade($value)
+ * @method static Builder<static>|Funcionario whereNomeCompleto($value)
+ * @method static Builder<static>|Funcionario whereObservacoes($value)
+ * @method static Builder<static>|Funcionario wherePeriodoAquisitivoFim($value)
+ * @method static Builder<static>|Funcionario wherePeriodoAquisitivoInicio($value)
+ * @method static Builder<static>|Funcionario whereUpdatedAt($value)
+ * @method static Builder<static>|Funcionario whereUserId($value)
+ * @mixin \Eloquent
+ */
 class Funcionario extends Model
 {
     use LogsActivity;
@@ -43,50 +141,6 @@ class Funcionario extends Model
     {
         return $this->hasMany(Dependente::class);
     }
-
-    // Cálculo automático
-    // public function getQtdDependentesSalarioFamiliaAttribute(): int
-    // {
-    //     return $this->dependentes()
-    //         ->where('ativo', true)
-    //         ->where(function($q) {
-    //             $q->whereRaw('TIMESTAMPDIFF(YEAR, data_nascimento, CURDATE()) < 14')
-    //             ->orWhere('invalido', true);
-    //         })
-    //         ->count();
-    // }
-    // public function getQtdDependentesSalarioFamiliaAttribute(): int
-    // {
-    //     $dataLimite = Carbon::now()->subYears(14); // 14 anos atrás
-
-    //     return $this->dependentes()
-    //         ->where('ativo', true)
-    //         ->where(function($q) use ($dataLimite) {
-    //             $q->where('data_nascimento', '>', $dataLimite) // Menos de 14 anos
-    //             ->orWhere('invalido', true); // Ou inválido
-    //         })
-    //         ->count();
-    // }
-    // public function getQtdDependentesSalarioFamiliaAttribute(): int
-    // {
-    //     $dataLimite = now()->subYears(14)->format('Y-m-d');
-
-    //     return $this->dependentes()
-    //         ->where('ativo', true)
-    //         ->where(function($q) use ($dataLimite) {
-    //             $q->whereDate('data_nascimento', '>', $dataLimite)
-    //             ->orWhere('invalido', true);
-    //         })
-    //         ->count();
-    // }
-    // Uso no Funcionario
-
-
-    // Accessor sobrescreve o valor do banco
-    // public function getQtdDependentesSalarioFamiliaAttribute(): int
-    // {
-    //     return $this->dependentes()->comDireitoSalarioFamilia()->count();
-    // }
 
 
     // Accessor
@@ -236,7 +290,7 @@ class Funcionario extends Model
 
         if ($hoje->lessThan($fimAquisitivo)) return null;
 
-        $fimConcessivo = $admissao->copy()->addMonths(24);
+        $fimConcessivo = $admissao->copy()->addMonths(12);
         return (int) $hoje->diffInDays($fimConcessivo, false);
     }
 
@@ -315,12 +369,6 @@ class Funcionario extends Model
             ->format('Y-m-d');
 
 
-
-
-        // $this->ferias_vencimento = $dataAdmissao->copy()
-        //                             ->addMonths(12)
-        //                             ->format('Y-m-d');
-
         $this->verificarFeriasVencidas();
     }
 
@@ -366,36 +414,6 @@ class Funcionario extends Model
         );
     }
 
-    /**
-     * Status descritivo das férias para exibição.
-     */
-    // protected function statusFerias(): Attribute
-    // {
-    //     return Attribute::make(
-    //         get: function () {
-    //             if (!$this->data_admissao || !$this->ativo) {
-    //                 return 'Não aplicável';
-    //             }
-
-    //             if (!$this->temDireitoFerias()) {
-    //                 $diasRestantes = $this->diasParaDireitoFerias();
-    //                 return "Em período aquisitivo ({$diasRestantes} dias restantes)";
-    //             }
-
-    //             if ($this->ferias_vencidas) {
-    //                 return 'Férias VENCIDAS — pagamento em dobro';
-    //             }
-
-    //             $dias = $this->dias_para_vencimento_ferias;
-
-    //             if ($dias <= 30) {
-    //                 return "Férias a vencer em {$dias} dia(s)";
-    //             }
-
-    //             return "Férias disponíveis ({$dias} dias para vencer)";
-    //         }
-    //     );
-    // }
 
     /**
      * Verifica se as férias estão vencidas (em dobro)
@@ -486,31 +504,7 @@ class Funcionario extends Model
         return $hoje->diffInDays($vencimento, false); // false = pode retornar negativo
     }
 
-    /**
-     * Status das férias (texto amigável)
-     */
-    // public function getStatusFeriasAttribute(): string
-    // {
-    //     if (!$this->temDireitoFerias()) {
-    //         return 'Sem direito ainda';
-    //     }
 
-
-    //     if ($this->ferias_em_dobro) {
-
-    //         return 'Vencidas (em dobro)';
-    //     }
-
-    //     $dias = $this->dias_para_vencimento_ferias;
-
-    //     if ($dias < 0) {
-    //         return 'Vencidas há ' . abs($dias) . ' dias';
-    //     } elseif ($dias <= 30) {
-    //         return "Vencem em $dias dias";
-    //     } else {
-    //         return 'Dentro do prazo';
-    //     }
-    // }
 
     /**
      * Status descritivo das férias para exibição.
@@ -584,23 +578,7 @@ class Funcionario extends Model
             ->dontLogEmptyChanges();
     }
 
-    // Scopes úteis
-    // public function scopeAtivos2(Builder $query)
-    // {
-    //     return $query->where('ativo', true);
-    // }
 
-    // public function scopeFeriasVencendo( Builder $query, $dias = 30)
-    // {
-    //     return $query->where('ferias_vencimento', '<=', Carbon::now()->addDays($dias))
-    //                 ->where('ativo', true);
-    // }
-
-    // public function scopeFeriasVencidas(Builder $query)
-    // {
-    //     return $query->where('ferias_vencidas', true)
-    //                 ->where('ativo', true);
-    // }
 
     public function scopeFeriasVencidasEmDobro(Builder $query)
     {
@@ -611,14 +589,16 @@ class Funcionario extends Model
      /**
      * Calcula salário bruto total
      */
-    public function getSalarioBrutoAttribute(): float
-    {
-        return $this->salario_base +
-               $this->gratificacao_provento +
-            //    $this->dsr_hora_extra +
-               $this->salario_familia +
-               $this->hora_extra;
-    }
+    // public function getSalarioBrutoAttribute(): float
+    // {
+    //     return $this->salario_base +
+    //            $this->gratificacao_provento +
+    //         //    $this->dsr_hora_extra +
+    //            $this->salario_familia +
+    //            $this->hora_extra;
+
+        
+    // }
 
     /**
      * Calcula total de descontos
@@ -718,59 +698,6 @@ class Funcionario extends Model
     // ACCESSORS (acessados como $funcionario->atributo)
     // ─────────────────────────────────────────────
 
-    /**
-     * Dias até o vencimento do período concessivo (admissão + 24 meses).
-     * Negativo = já venceu | null = sem data de admissão
-     * CLT Art. 134
-     */
-    // protected function diasParaVencimentoFerias(): Attribute
-    // {
-    //     return Attribute::make(
-    //         get: function () {
-    //             if (!$this->data_admissao || !$this->ativo) {
-    //                 return null;
-    //             }
-
-    //             if (!$this->temDireitoFerias()) {
-    //                 return null; // ainda em período aquisitivo
-    //             }
-
-    //             $vencimento = Carbon::parse($this->data_admissao)
-    //                 ->startOfDay()
-    //                 ->addMonths(24);
-
-    //             $hoje = Carbon::now()->startOfDay();
-
-    //             // false = permite valor negativo (já venceu)
-    //             return (int) $hoje->diffInDays($vencimento, false);
-    //         }
-    //     );
-    // }
-
-    /**
-     * Férias vencidas = passou dos 24 meses sem gozar.
-     * CLT Art. 137 — pagamento em dobro.
-     */
-    // protected function feriasVencidas(): Attribute
-    // {
-    //     return Attribute::make(
-    //         get: function () {
-    //             if (!$this->data_admissao || !$this->ativo) {
-    //                 return false;
-    //             }
-
-    //             if (!$this->temDireitoFerias()) {
-    //                 return false;
-    //             }
-
-    //             $vencimento = Carbon::parse($this->data_admissao)
-    //                 ->startOfDay()
-    //                 ->addMonths(24);
-
-    //             return Carbon::now()->startOfDay()->greaterThan($vencimento);
-    //         }
-    //     );
-    // }
 
     /**
      * Texto descritivo do status das férias para exibição.
@@ -852,26 +779,6 @@ class Funcionario extends Model
 
     /*************** */
 
-    // public function getDiasParaVencimentoFeriasAttribute(): ?int
-    // {
-    //     if (!$this->data_admissao || !$this->ativo) {
-    //         return null;
-    //     }
-
-    //     $admissao      = Carbon::parse($this->data_admissao)->startOfDay();
-    //     $hoje          = Carbon::now()->startOfDay();
-    //     $fimAquisitivo = $admissao->copy()->addYear();
-
-    //     // Ainda em período aquisitivo — não há vencimento de concessivo ainda
-    //     if ($hoje->lessThan($fimAquisitivo)) {
-    //         return null;
-    //     }
-
-    //     $fimConcessivo = $admissao->copy()->addMonths(24);
-
-    //     // false = permite negativo se já venceu
-    //     return (int) $hoje->diffInDays($fimConcessivo, false);
-    // }
 
     public function getFeriasVencidasAttribute(): bool
     {
@@ -892,20 +799,6 @@ class Funcionario extends Model
 
         return $hoje->greaterThan($fimConcessivo);
     }
-
-    // public function temDireitoFerias(): bool
-    // {
-    //     if (!$this->data_admissao || !$this->ativo) {
-    //         return false;
-    //     }
-
-    //     $fimAquisitivo = Carbon::parse($this->data_admissao)
-    //         ->startOfDay()
-    //         ->addYear();
-
-    //     // Tem direito somente após 12 meses completos
-    //     return Carbon::now()->startOfDay()->greaterThanOrEqualTo($fimAquisitivo);
-    // }
 
     public function mesesTrabalhados(): int
     {
@@ -937,47 +830,5 @@ class Funcionario extends Model
         return (int) $hoje->diffInDays($fimAquisitivo);
     }
 
-    /**
-     * Texto descritivo do status das férias.
-     */
-    // public function getStatusFeriasAttribute(): string
-    // {
-    //     if (!$this->data_admissao || !$this->ativo) {
-    //         return 'Não aplicável';
-    //     }
-
-    //     $admissao = Carbon::parse($this->data_admissao)->startOfDay();
-    //     $hoje     = Carbon::now()->startOfDay();
-
-    //     // Marcos temporais
-    //     $fimAquisitivo  = $admissao->copy()->addYear();        // +12 meses
-    //     $fimConcessivo  = $admissao->copy()->addMonths(24);    // +24 meses
-
-    //     // ── FASE 1: Ainda no período aquisitivo (< 12 meses) ──────────────────
-    //     if ($hoje->lessThan($fimAquisitivo)) {
-    //         $dias = (int) $hoje->diffInDays($fimAquisitivo);
-    //         return "Em período aquisitivo ({$dias} dias restantes)";
-    //     }
-
-    //     // ── FASE 2: Período concessivo vencido (> 24 meses) ───────────────────
-    //     if ($hoje->greaterThan($fimConcessivo)) {
-    //         $diasVencido = (int) $fimConcessivo->diffInDays($hoje);
-    //         return "Férias VENCIDAS há {$diasVencido} dia(s) — pagamento do 1/3 de férias";
-    //     }
-
-    //     // ── FASE 3: Dentro do período concessivo (entre 12 e 24 meses) ────────
-    //     $diasRestantes = (int) $hoje->diffInDays($fimConcessivo);
-
-    //     if ($diasRestantes <= 30) {
-    //         return "⚠ Férias a vencer em {$diasRestantes} dia(s) — agende com urgência";
-    //     }
-
-    //     if ($diasRestantes <= 90) {
-    //         return "Férias a vencer em {$diasRestantes} dias — atenção ao prazo";
-    //     }
-
-    //     // return "Férias disponíveis — vence em {$diasRestantes} dias ({$fimConcessivo->format('d/m/Y')})";
-    //     return "Férias disponíveis";
-    // }
 
 }

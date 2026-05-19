@@ -45,6 +45,13 @@ class RolesAndPermissionsSeeder extends Seeder
             'folha.reopen',
             'folha.reports',
 
+            // Ferias
+            'ferias.view',
+            'ferias.create',
+            'ferias.edit',
+            'ferias.cancel',    // Cancelar período
+            'ferias.delete',    // Excluir período
+
             // Financeiro (para o futuro)
             'financeiro.dashboard.view',
             'boletos.view',

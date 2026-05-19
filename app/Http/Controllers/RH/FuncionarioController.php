@@ -69,7 +69,7 @@ class FuncionarioController extends Controller
 
     public function store(FuncionarioStoreRequest $request)
     {
-        dd($request->all());
+
         try {
             $funcionario = $this->funcionarioService->criarFuncionario($request->validated());
 
@@ -87,7 +87,13 @@ class FuncionarioController extends Controller
     {
         // $id = $funcionario->id;
 
-        $funcionario->loadMissing(['cargo', 'departamento', 'usuario', 'periodoFerias']); //load(['departamento', 'cargo', 'usuario']);
+        $funcionario->loadMissing(['cargo', 'departamento', 
+                                    'usuario', 'periodoFerias', 
+                                    'contrato', 'dependentes', 
+                                    'contatos', 'documentos', 
+                                    'endereco', 'dadosBancarios', 
+                                    'beneficios', 'folhasPagamento', 
+                                    'folhasPagamento.lancamentos']); //load(['departamento', 'cargo', 'usuario']);
         // $funcionario = Funcionario::with(['cargo', 'departamento', 'usuario', 'periodoFerias'])
         //                             ->findOrFail($id);
 

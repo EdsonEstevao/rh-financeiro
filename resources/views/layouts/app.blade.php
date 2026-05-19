@@ -123,6 +123,21 @@
                                                 </a>
                                             @endcan
 
+                                            <!-- Ferias funcionario -->
+                                            @can('ferias.view')
+                                                <a href="{{ route('rh.ferias.dashboard') }}"
+                                                    class="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors
+                                                {{ request()->routeIs('rh.ferias.*') ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700 hover:bg-gray-50' }}">
+                                                    <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd"
+                                                            d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                                            clip-rule="evenodd" />
+                                                    </svg>
+                                                    Férias
+                                                </a>
+                                            @endcan
+
+
                                             {{-- Folha de Pagamento --}}
                                             @can('folha.view')
                                                 <a href="{{ route('rh.folha-pagamento.index') }}"
@@ -149,15 +164,17 @@
                                                     Relatórios RH
                                                 </a>
                                             @endcan
-                                            <a href="{{ route('rh.folha-pagamento.resumo-geral') }}"
-                                                class="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors
+                                            @can('folha.reports')
+                                                <a href="{{ route('rh.folha-pagamento.resumo-geral') }}"
+                                                    class="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors
                                                 {{ request()->routeIs('rh.folha-pagamento.resumo-geral') ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700 hover:bg-gray-50' }}">
-                                                <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path
-                                                        d="M15.5 2A1.5 1.5 0 0014 3.5v13a1.5 1.5 0 001.5 1.5h1a1.5 1.5 0 001.5-1.5v-13A1.5 1.5 0 0016.5 2h-1zM9.5 6A1.5 1.5 0 008 7.5v9A1.5 1.5 0 009.5 18h1a1.5 1.5 0 001.5-1.5v-9A1.5 1.5 0 0010.5 6h-1zM3.5 10A1.5 1.5 0 002 11.5v5A1.5 1.5 0 003.5 18h1A1.5 1.5 0 006 16.5v-5A1.5 1.5 0 004.5 10h-1z" />
-                                                </svg>
-                                                Relatorio Geral RH
-                                            </a>
+                                                    <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path
+                                                            d="M15.5 2A1.5 1.5 0 0014 3.5v13a1.5 1.5 0 001.5 1.5h1a1.5 1.5 0 001.5-1.5v-13A1.5 1.5 0 0016.5 2h-1zM9.5 6A1.5 1.5 0 008 7.5v9A1.5 1.5 0 009.5 18h1a1.5 1.5 0 001.5-1.5v-9A1.5 1.5 0 0010.5 6h-1zM3.5 10A1.5 1.5 0 002 11.5v5A1.5 1.5 0 003.5 18h1A1.5 1.5 0 006 16.5v-5A1.5 1.5 0 004.5 10h-1z" />
+                                                    </svg>
+                                                    can Relatorio Geral RH
+                                                </a>
+                                            @endcan
 
 
                                             {{-- Divisor --}}
@@ -188,7 +205,8 @@
                                                 <a href="{{ route('rh.cargos.index') }}"
                                                     class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors
                                                     {{ request()->routeIs('rh.cargos.*') ? 'bg-indigo-50 text-indigo-700 font-medium' : '' }}">
-                                                    <svg class="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                                    <svg class="h-4 w-4 text-gray-400" viewBox="0 0 20 20"
+                                                        fill="currentColor">
                                                         <path fill-rule="evenodd"
                                                             d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z"
                                                             clip-rule="evenodd" />
@@ -312,8 +330,7 @@
                             @endcanany
 
                             {{-- ── ADMIN ────────────────────────────── --}}
-                            @role('admin')
-                                {{-- <a href="{{ route('admin.usuarios.index') }}" --}}
+                            {{-- @role('admin')
                                 <a href="#"
                                     class="inline-flex items-center gap-1.5 px-3 border-b-2 text-sm font-medium transition-colors
                                     {{ request()->routeIs('admin.*')
@@ -326,6 +343,61 @@
                                     </svg>
                                     Admin
                                 </a>
+                            @endrole --}}
+                            @role('admin')
+                                <div class="relative flex items-stretch" x-data="{ openAdmin: false }">
+                                    <button type="button" @click="openAdmin = !openAdmin"
+                                        @keydown.escape="openAdmin = false"
+                                        class="inline-flex items-center gap-1.5 px-3 border-b-2 text-sm font-medium transition-colors
+            {{ request()->routeIs('admin.*')
+                ? 'border-red-600 text-gray-900'
+                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700' }}">
+                                        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd"
+                                                d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                        Admin
+                                        <svg class="h-3.5 w-3.5 transition-transform duration-200"
+                                            :class="openAdmin ? 'rotate-180' : ''" viewBox="0 0 20 20"
+                                            fill="currentColor">
+                                            <path fill-rule="evenodd"
+                                                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+
+                                    <div x-show="openAdmin" x-cloak x-transition @click.away="openAdmin = false"
+                                        class="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg bg-white shadow-lg ring-1 ring-black/5">
+                                        <div class="px-3 py-2 border-b border-gray-100">
+                                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                                                Administração</p>
+                                        </div>
+                                        <div class="py-1">
+                                            <a href="{{ route('admin.users.index') }}"
+                                                class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors
+                    {{ request()->routeIs('admin.users.*') ? 'bg-red-50 text-red-700 font-medium' : '' }}">
+                                                👥 Usuários
+                                            </a>
+                                            <a href="{{ route('admin.roles.index') }}"
+                                                class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors
+                    {{ request()->routeIs('admin.roles.*') ? 'bg-red-50 text-red-700 font-medium' : '' }}">
+                                                🔑 Perfis
+                                            </a>
+                                            <a href="{{ route('admin.permissions.index') }}"
+                                                class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors
+                    {{ request()->routeIs('admin.permissions.*') ? 'bg-red-50 text-red-700 font-medium' : '' }}">
+                                                🔒 Permissões
+                                            </a>
+                                            {{-- Logs Activity --}}
+                                            <a href="{{ route('admin.activity-logs.index') }}"
+                                                class="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors
+        {{ request()->routeIs('admin.activity-logs.*') ? 'bg-red-50 text-red-700 font-medium' : 'text-gray-700 hover:bg-gray-50' }}">
+                                                <span class="text-lg">📜</span> Logs
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
                             @endrole
 
                         </div>
@@ -461,7 +533,7 @@
 
                                     {{-- ── SEÇÃO RH MOBILE ─────────── --}}
                                     @canany(['rh.dashboard.view', 'funcionarios.view', 'folha.view',
-                                        'departamentos.view', 'cargos.view', 'cargos.manage'])
+                                        'departamentos.view', 'cargos.view', 'cargos.manage', 'ferias.view'])
                                         <div class="pt-3 pb-1">
                                             <p class="px-3 text-xs font-bold uppercase tracking-wider text-gray-400">
                                                 Recursos Humanos
@@ -489,6 +561,20 @@
                                                         d="M10 9a3 3 0 100-6 3 3 0 000 6zM6 8a2 2 0 11-4 0 2 2 0 014 0zM1.49 15.326a.78.78 0 01-.358-.442 3 3 0 014.308-3.516 6.484 6.484 0 00-1.905 3.959c-.023.222-.014.442.025.654a4.97 4.97 0 01-2.07-.655zM16.44 15.98a4.97 4.97 0 002.07-.654.78.78 0 00.357-.442 3 3 0 00-4.308-3.517 6.484 6.484 0 011.907 3.96 2.32 2.32 0 01-.026.654zM18 8a2 2 0 11-4 0 2 2 0 014 0zM5.304 16.19a.844.844 0 01-.277-.71 5 5 0 019.947 0 .843.843 0 01-.277.71A6.975 6.975 0 0110 18a6.974 6.974 0 01-4.696-1.81z" />
                                                 </svg>
                                                 Funcionários
+                                            </a>
+                                        @endcan
+
+                                        <!-- Ferias funcionario -->
+                                        @can('ferias.view')
+                                            <a href="{{ route('rh.ferias.dashboard') }}"
+                                                class="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors
+                                                {{ request()->routeIs('rh.ferias.*') ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700 hover:bg-gray-50' }}">
+                                                <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd"
+                                                        d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                                        clip-rule="evenodd" />
+                                                </svg>
+                                                Férias
                                             </a>
                                         @endcan
 
@@ -611,13 +697,12 @@
                                     @endcanany
 
                                     {{-- Admin Mobile --}}
-                                    @role('admin')
+                                    {{-- @role('admin')
                                         <div class="pt-3 pb-1">
                                             <p class="px-3 text-xs font-bold uppercase tracking-wider text-gray-400">
                                                 Administração
                                             </p>
                                         </div>
-                                        {{-- <a href="{{ route('admin.usuarios.index') }}" --}}
                                         <a href="#"
                                             class="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors
                                             {{ request()->routeIs('admin.*') ? 'bg-red-50 text-red-700 font-medium' : 'text-gray-700 hover:bg-gray-50' }}">
@@ -627,6 +712,33 @@
                                                     clip-rule="evenodd" />
                                             </svg>
                                             Usuários & Perfis
+                                        </a>
+                                    @endrole --}}
+                                    @role('admin')
+                                        <div class="pt-3 pb-1">
+                                            <p class="px-3 text-xs font-bold uppercase tracking-wider text-gray-400">
+                                                Administração</p>
+                                        </div>
+                                        <a href="{{ route('admin.users.index') }}"
+                                            class="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors
+        {{ request()->routeIs('admin.users.*') ? 'bg-red-50 text-red-700 font-medium' : 'text-gray-700 hover:bg-gray-50' }}">
+                                            <span class="text-lg">👥</span> Usuários
+                                        </a>
+                                        <a href="{{ route('admin.roles.index') }}"
+                                            class="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors
+        {{ request()->routeIs('admin.roles.*') ? 'bg-red-50 text-red-700 font-medium' : 'text-gray-700 hover:bg-gray-50' }}">
+                                            <span class="text-lg">🔑</span> Perfis
+                                        </a>
+                                        <a href="{{ route('admin.permissions.index') }}"
+                                            class="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors
+        {{ request()->routeIs('admin.permissions.*') ? 'bg-red-50 text-red-700 font-medium' : 'text-gray-700 hover:bg-gray-50' }}">
+                                            <span class="text-lg">🔒</span> Permissões
+                                        </a>
+                                        {{-- Logs Activity --}}
+                                        <a href="{{ route('admin.activity-logs.index') }}"
+                                            class="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors
+        {{ request()->routeIs('admin.activity-logs.*') ? 'bg-red-50 text-red-700 font-medium' : 'text-gray-700 hover:bg-gray-50' }}">
+                                            <span class="text-lg">📜</span> Logs
                                         </a>
                                     @endrole
 

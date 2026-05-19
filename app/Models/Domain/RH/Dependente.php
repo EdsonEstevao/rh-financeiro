@@ -5,6 +5,37 @@ namespace App\Models\Domain\RH;
 use Illuminate\Database\Eloquent\{Builder, Model};
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property int $funcionario_id
+ * @property string $nome_completo
+ * @property \Illuminate\Support\Carbon $data_nascimento
+ * @property string $parentesco
+ * @property bool $invalido
+ * @property bool $ativo
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read \App\Models\Domain\RH\Funcionario $funcionario
+ * @property-read int $idade
+ * @property-read bool $tem_direito_salario_familia
+ * @method static Builder<static>|Dependente ativos()
+ * @method static Builder<static>|Dependente comDireitoSalarioFamilia()
+ * @method static Builder<static>|Dependente invalidos()
+ * @method static Builder<static>|Dependente menoresDe14Anos()
+ * @method static Builder<static>|Dependente newModelQuery()
+ * @method static Builder<static>|Dependente newQuery()
+ * @method static Builder<static>|Dependente query()
+ * @method static Builder<static>|Dependente whereAtivo($value)
+ * @method static Builder<static>|Dependente whereCreatedAt($value)
+ * @method static Builder<static>|Dependente whereDataNascimento($value)
+ * @method static Builder<static>|Dependente whereFuncionarioId($value)
+ * @method static Builder<static>|Dependente whereId($value)
+ * @method static Builder<static>|Dependente whereInvalido($value)
+ * @method static Builder<static>|Dependente whereNomeCompleto($value)
+ * @method static Builder<static>|Dependente whereParentesco($value)
+ * @method static Builder<static>|Dependente whereUpdatedAt($value)
+ * @mixin \Eloquent
+ */
 class Dependente extends Model
 {
     protected $table = 'dependentes';

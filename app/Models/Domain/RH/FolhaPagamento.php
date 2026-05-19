@@ -9,6 +9,70 @@ use Illuminate\Support\Carbon;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
+/**
+ * @property int $id
+ * @property int $funcionario_id
+ * @property Carbon $competencia
+ * @property numeric $salario_base
+ * @property numeric $gratificacao_feriado
+ * @property numeric $salario_familia_hr_extra
+ * @property numeric $arredondamento_provento
+ * @property numeric $horas_extras_totais
+ * @property numeric $valor_hora_extra
+ * @property numeric $desconto_inss
+ * @property numeric $vale_dia_20
+ * @property numeric $vale_extra
+ * @property numeric $faltas_valor
+ * @property numeric $dsr_faltas
+ * @property numeric $arredondamento_desconto
+ * @property Carbon|null $quinto_dia_util
+ * @property string|null $observacao
+ * @property string $status
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \Spatie\Activitylog\Models\Activity> $activitiesAsSubject
+ * @property-read int|null $activities_as_subject_count
+ * @property-read mixed $dsr_hora_extra
+ * @property-read \App\Models\Domain\RH\Funcionario $funcionario
+ * @property-read float $total_horas_extras_quantidade
+ * @property-read float $total_horas_extras_valor
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Domain\RH\Holerite> $holerites
+ * @property-read int|null $holerites_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Domain\RH\FolhaLancamento> $lancamentos
+ * @property-read int|null $lancamentos_count
+ * @property-read mixed $salario_liquido
+ * @property-read mixed $salario_liquido_new
+ * @property-read mixed $total_descontos
+ * @property-read mixed $total_descontos_new
+ * @property-read mixed $total_proventos
+ * @property-read mixed $total_proventos_new
+ * @method static Builder<static>|FolhaPagamento abertas()
+ * @method static Builder<static>|FolhaPagamento fechadas()
+ * @method static Builder<static>|FolhaPagamento newModelQuery()
+ * @method static Builder<static>|FolhaPagamento newQuery()
+ * @method static Builder<static>|FolhaPagamento query()
+ * @method static Builder<static>|FolhaPagamento whereArredondamentoDesconto($value)
+ * @method static Builder<static>|FolhaPagamento whereArredondamentoProvento($value)
+ * @method static Builder<static>|FolhaPagamento whereCompetencia($value)
+ * @method static Builder<static>|FolhaPagamento whereCreatedAt($value)
+ * @method static Builder<static>|FolhaPagamento whereDescontoInss($value)
+ * @method static Builder<static>|FolhaPagamento whereDsrFaltas($value)
+ * @method static Builder<static>|FolhaPagamento whereFaltasValor($value)
+ * @method static Builder<static>|FolhaPagamento whereFuncionarioId($value)
+ * @method static Builder<static>|FolhaPagamento whereGratificacaoFeriado($value)
+ * @method static Builder<static>|FolhaPagamento whereHorasExtrasTotais($value)
+ * @method static Builder<static>|FolhaPagamento whereId($value)
+ * @method static Builder<static>|FolhaPagamento whereObservacao($value)
+ * @method static Builder<static>|FolhaPagamento whereQuintoDiaUtil($value)
+ * @method static Builder<static>|FolhaPagamento whereSalarioBase($value)
+ * @method static Builder<static>|FolhaPagamento whereSalarioFamiliaHrExtra($value)
+ * @method static Builder<static>|FolhaPagamento whereStatus($value)
+ * @method static Builder<static>|FolhaPagamento whereUpdatedAt($value)
+ * @method static Builder<static>|FolhaPagamento whereValeDia20($value)
+ * @method static Builder<static>|FolhaPagamento whereValeExtra($value)
+ * @method static Builder<static>|FolhaPagamento whereValorHoraExtra($value)
+ * @mixin \Eloquent
+ */
 class FolhaPagamento extends Model
 {
     use LogsActivity;
@@ -233,7 +297,7 @@ class FolhaPagamento extends Model
     /**
      * Total de Proventos — também calculado
      */
-    protected function totalProventos(): Attribute
+    protected function scopeTotalProventos(): Attribute
     {
         return Attribute::make(
             get: fn () => round(

@@ -8,9 +8,9 @@ use Illuminate\View\View;
 use Illuminate\Support\Facades\{Auth, Log};
 use Illuminate\Validation\ValidationException;
 
+use App\Models\Domain\RH\{Cargo, FolhaLancamento, FolhaPagamento, Funcionario, FuncionarioContrato};
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RH\FolhaPagamentoRequest;
-use App\Models\Domain\RH\{Cargo, FolhaLancamento, FolhaPagamento, Funcionario};
 use App\Services\RH\{CalculoTrabalhistaService, FolhaPagamentoService};
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -119,6 +119,8 @@ class FolhaPagamentoController extends Controller
     }
      public function index(Request $request): View
     {
+
+
         $competencia = $request->input('competencia', now()->format('Y-m'));
         $status = $request->input('status', '');
 
@@ -902,13 +904,13 @@ class FolhaPagamentoController extends Controller
     }
     public function resumoGeral(Request $request)
     {
-        // dd($request->all());
         // 'funcionario.localTrabalho', // ajuste conforme seu relacionamento
 
         $query = FolhaPagamento::with([
             'funcionario.cargo',
             'funcionario.departamento',
-            'lancamentos'
+            'funcionario.contrato',
+            'lancamentos',
             ])
         ->orderBy('competencia', 'desc')
         ->orderBy('created_at', 'desc');
@@ -922,11 +924,16 @@ class FolhaPagamentoController extends Controller
 
         // Filtro por local de trabalho
         if ($request->filled('local_trabalho')) {
-            // dd('caiu aqu...');
-            $query->whereHas('funcionario', function ($q) use ($request) {
+
+            $query->whereHas('funcionario.contrato', function ($q) use ($request) {
+
                 $q->where('local_trabalho', $request->local_trabalho);
             });
+
+
         }
+
+
 
         // Filtro por departamento/função
         if ($request->filled('cargo_id')) {
@@ -1000,12 +1007,20 @@ class FolhaPagamentoController extends Controller
 
         $cargos = Cargo::orderBy('titulo', 'asc')->get();
 
-        $locaisTrabalho = Funcionario::selectRaw('DISTINCT local_trabalho')
-            ->whereNotNull('local_trabalho')
-            ->orderBy('local_trabalho')
-            ->pluck('local_trabalho');
+        // $locaisTrabalho = Funcionario::selectRaw('DISTINCT local_trabalho')
+        //     ->whereNotNull('local_trabalho')
+        //     ->orderBy('local_trabalho')
+        //     ->pluck('local_trabalho');
+
+        $locaisTrabalho = FuncionarioContrato::select('local_trabalho')
+                            ->whereNotNull('local_trabalho')
+                            ->where('local_trabalho', '!=', '')
+                            ->distinct()
+                            ->orderBy('local_trabalho')
+                            ->pluck('local_trabalho');
 
         activity()
+            ->event('acessou_resumo_folha')
             ->causedBy(Auth::user())
             ->log('Acessou o resumo geral da folha de pagamento');
 

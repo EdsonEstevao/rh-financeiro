@@ -6,6 +6,59 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $funcionario_id
+ * @property Carbon $data_admissao
+ * @property Carbon|null $data_demissao
+ * @property string $tipo_contratacao Regime/Vínculo
+ * @property string $tipo_contrato Prazo/Termo
+ * @property string $tipo_remuneracao
+ * @property numeric $salario_base
+ * @property numeric|null $valor_diaria
+ * @property numeric|null $valor_hora
+ * @property bool $eh_diarista
+ * @property bool $aplica_inss
+ * @property int $carga_horaria_semanal
+ * @property Carbon $horario_entrada
+ * @property Carbon $horario_saida
+ * @property Carbon $horario_almoco_inicio
+ * @property Carbon $horario_almoco_fim
+ * @property string|null $local_trabalho
+ * @property int $qtd_dependentes_ir
+ * @property int $qtd_dependentes_salario_familia
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read \App\Models\Domain\RH\Funcionario $funcionario
+ * @property-read float $valor_hora_extra
+ * @property-read float $valor_hora_normal
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereAplicaInss($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereCargaHorariaSemanal($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereDataAdmissao($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereDataDemissao($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereEhDiarista($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereFuncionarioId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereHorarioAlmocoFim($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereHorarioAlmocoInicio($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereHorarioEntrada($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereHorarioSaida($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereLocalTrabalho($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereQtdDependentesIr($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereQtdDependentesSalarioFamilia($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereSalarioBase($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereTipoContratacao($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereTipoContrato($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereTipoRemuneracao($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereUpdatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereValorDiaria($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|FuncionarioContrato whereValorHora($value)
+ * @mixin \Eloquent
+ */
 class FuncionarioContrato extends Model
 {
     protected $table = 'funcionario_contratos';
@@ -161,4 +214,9 @@ class FuncionarioContrato extends Model
     {
         return $this->valor_hora_normal * 1.5;
     }
+    /**
+     *  Salario Bruto
+     */
+   
+
 }

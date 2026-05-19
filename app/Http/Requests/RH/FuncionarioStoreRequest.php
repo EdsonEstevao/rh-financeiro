@@ -22,7 +22,8 @@ class FuncionarioStoreRequest extends FormRequest
 
             // Dados Pessoais
             'nome_completo' => ['required', 'string', 'max:255'],
-            'cpf' => ['required', 'string', 'size:14', 'unique:funcionarios,cpf', 'regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/'],
+            'cpf' => ['required', 'string', 'size:14', 'regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/',
+            Rule::unique('funcionario_documentos', 'cpf')],
             'rg' => ['required', 'string', 'max:20'],
             'orgao_expedidor_rg' => ['nullable', 'string', 'max:10'],
             'data_nascimento' => ['required', 'date', 'before:today'],
@@ -34,7 +35,7 @@ class FuncionarioStoreRequest extends FormRequest
             // Contato
             'telefone' => ['required', 'string', 'max:15'],
             'celular' => ['required', 'string', 'max:15'],
-            'email' => ['required', 'email', 'unique:funcionarios,email'],
+            'email' => ['required', 'email', Rule::unique('funcionario_contatos', 'email')],
             'email_pessoal' => ['nullable', 'email'],
 
             // Endereço
@@ -57,16 +58,25 @@ class FuncionarioStoreRequest extends FormRequest
 
             // Contrato
             'data_admissao' => ['required', 'date', 'before_or_equal:today'],
-            'tipo_contrato' => ['required', Rule::in(['clt', 'temporario', 'aprendiz', 'estagio', 'terceirizado'])],
-            'salario_base' => ['required', 'numeric', 'min:0'],
-            'carga_horaria_semanal' => ['required', 'integer', 'min:1', 'max:44'],
+            'tipo_contratacao' => ['required', Rule::in(['clt', 'pj', 'autonomo', 'avulso', 'estatutario'])],
+            'tipo_contrato' => ['required', Rule::in(['indeterminado', 'determinado', 'experiencia', 'intermitente', 'temporario', 'aprendiz', 'estagio'])],
+            
+            'local_trabalho' => ['nullable', 'string', 'max:255'],
+            
+            // Remuneração
+            'tipo_remuneracao' => ['required', Rule::in(['mensal', 'diaria', 'horaria'])],
+            'salario_base' => ['nullable', 'numeric', 'min:0', 'required_if:tipo_remuneracao,mensal'],
+            'valor_diaria' => ['nullable', 'numeric', 'min:0', 'required_if:tipo_remuneracao,diaria'],
+            'valor_hora'   => ['nullable', 'numeric', 'min:0', 'required_if:tipo_remuneracao,horaria'],
+            'eh_diarista' => ['sometimes', 'boolean'],
 
-            // Horários
+            // Jornada de Trabalho/ Horários
+            'carga_horaria_semanal' => ['required', 'integer', 'min:1', 'max:44'],
             'horario_entrada' => ['required', 'date_format:H:i'],
             'horario_saida' => ['required', 'date_format:H:i'],
             'horario_almoco_inicio' => ['required', 'date_format:H:i'],
             'horario_almoco_fim' => ['required', 'date_format:H:i'],
-
+            
             // Benefícios
             'vale_transporte' => ['sometimes', 'boolean'],
             'valor_vale_transporte' => ['nullable', 'numeric', 'min:0'],

@@ -2,28 +2,28 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="max-w-full px-4 py-6 mx-auto sm:px-6 lg:px-8">
 
-        <div class="mb-6 flex items-center justify-between">
+        <div class="flex items-center justify-between mb-6">
             <div>
                 <h1 class="text-2xl font-bold text-gray-900">📅 Períodos de Férias</h1>
                 <p class="mt-1 text-sm text-gray-500">Gerencie todos os períodos de férias</p>
             </div>
             <div class="flex gap-3">
                 <a href="{{ route('rh.ferias.dashboard') }}"
-                    class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 text-sm">
+                    class="inline-flex items-center px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                     📊 Dashboard
                 </a>
             </div>
         </div>
 
         {{-- Filtros --}}
-        <div class="bg-white rounded-lg shadow mb-6 p-4">
-            <form action="{{ route('rh.ferias.index') }}" method="GET" class="flex gap-4 items-end">
+        <div class="p-4 mb-6 bg-white rounded-lg shadow">
+            <form action="{{ route('rh.ferias.index') }}" method="GET" class="flex items-end gap-4">
                 <div>
                     <label class="block text-xs font-medium text-gray-700">Status</label>
                     <select name="status"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                        class="block w-full mt-1 text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                         <option value="">Todos</option>
                         <option value="planejada" @selected($status === 'planejada')>Planejada</option>
                         <option value="aprovada" @selected($status === 'aprovada')>Aprovada</option>
@@ -34,11 +34,11 @@
                 <div>
                     <label class="block text-xs font-medium text-gray-700">Funcionário</label>
                     <input type="text" name="funcionario" value="{{ request('funcionario') }}" placeholder="Nome..."
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                        class="block w-full mt-1 text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                 </div>
                 <div>
                     <button type="submit"
-                        class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm">
+                        class="px-4 py-2 text-sm text-white bg-indigo-600 rounded-md hover:bg-indigo-700">
                         🔍 Filtrar
                     </button>
                 </div>
@@ -46,9 +46,9 @@
         </div>
 
         {{-- Tabela --}}
-        <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="overflow-hidden bg-white rounded-lg shadow">
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <table class="min-w-full text-sm divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-4 py-3 text-left">Funcionário</th>
@@ -83,10 +83,23 @@
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-center">
+                                    <a href="{{ route('rh.ferias.create', ['funcionario' => $periodo->funcionario->id]) }}"
+                                        class="text-xs font-medium text-indigo-600 hover:text-indigo-900">
+                                        Agendar Férias
+                                    </a>
                                     <a href="{{ route('rh.ferias.edit', $periodo) }}"
-                                        class="text-indigo-600 hover:text-indigo-900 font-medium">
+                                        class="font-medium text-indigo-600 hover:text-indigo-900">
                                         ✏️ Editar
                                     </a>
+                                    <form action="{{ route('rh.ferias.destroy', $periodo) }}" method="POST"
+                                        class="inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="font-medium text-red-600 hover:text-red-900"
+                                            onclick="return confirm('Confirma a exclusão deste período de férias?')">
+                                            🗑️ Excluir
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         @empty

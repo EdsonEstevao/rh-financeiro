@@ -4,6 +4,7 @@ namespace App\Models\Domain\RH;
 
 use Illuminate\Database\Eloquent\{Builder, Model};
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * @property int $id
@@ -33,6 +34,14 @@ class Cargo extends Model
     protected function casts(): array
     {
         return ['ativo' => 'boolean'];
+    }
+
+     public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['titulo', 'ativo'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
     }
 
     public function funcionarios(): HasMany

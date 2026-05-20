@@ -92,11 +92,18 @@ class PeriodoFeriasController extends Controller
      */
     public function index(Request $request)
     {
-        $status = $request->get('status', '');
-        $funcionario = $request->get('funcionario', '');
+        $status = $request->status ?? '';
+        $funcionario = $request->funcionario ?? '';
 
+        // $query = PeriodoFerias::with(['funcionario.cargo', 'funcionario.contrato'])
+        //     ->orderBy('data_inicio', 'desc');
         $query = PeriodoFerias::with(['funcionario.cargo', 'funcionario.contrato'])
-            ->orderBy('data_inicio', 'desc');
+                ->join('funcionarios', 'periodos_ferias.funcionario_id', '=', 'funcionarios.id')
+                ->orderBy('funcionarios.nome_completo', 'asc')
+                ->orderBy('periodos_ferias.numero_periodo', 'asc')
+                ->select('periodos_ferias.*');
+
+        // dd($query->get());
 
         // ✅ Filtro por status
         if ($status) {
@@ -111,7 +118,9 @@ class PeriodoFeriasController extends Controller
         }
 
         $periodos = $query->paginate(20)->withQueryString(); // ✅ Mantém filtros na paginação
-        $funcionarios = Funcionario::where('ativo', true)->orderBy('nome_completo')->get();
+        $funcionarios = Funcionario::where('ativo', true)->orderBy('nome_completo', 'desc')->get();
+
+
 
         return view('rh.ferias.index', compact('periodos', 'funcionarios', 'status'));
     }
@@ -121,7 +130,10 @@ class PeriodoFeriasController extends Controller
      */
     public function create(Funcionario $funcionario)
     {
-        $funcionario->load(['cargo', 'contrato', 'periodoFerias' => function($query) {
+        // $funcionario->load(['cargo', 'contrato', 'periodoFerias' => function($query) {
+        //     $query->orderBy('data_inicio', 'desc');
+        // }]);
+        $funcionario->load(['cargo', 'departamento', 'contrato', 'periodoFerias' => function($query) {
             $query->orderBy('data_inicio', 'desc');
         }]);
 

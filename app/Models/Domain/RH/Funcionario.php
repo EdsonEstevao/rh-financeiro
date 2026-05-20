@@ -136,6 +136,9 @@ class Funcionario extends Model
         'ativo' => 'boolean',
     ];
 
+    
+    
+
     // Model Funcionario
     public function dependentes(): HasMany
     {
@@ -220,6 +223,8 @@ class Funcionario extends Model
     }
 
     // ─── ACCESSORS (delega para tabelas relacionadas) ───
+
+    
 
     // Endereço
     public function getCepAttribute() { return $this->endereco?->cep; }

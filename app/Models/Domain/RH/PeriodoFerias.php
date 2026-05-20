@@ -5,6 +5,7 @@ namespace App\Models\Domain\RH;
 use Illuminate\Database\Eloquent\{Builder, Model};
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * @property int $id
@@ -59,6 +60,14 @@ class PeriodoFerias extends Model
         'abono_pecuniario' => 'boolean',
     ];
 
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['status', 'data_inicio', 'data_fim'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
+
     public function funcionario(): BelongsTo
     {
         return $this->belongsTo(Funcionario::class, 'funcionario_id');
@@ -67,11 +76,11 @@ class PeriodoFerias extends Model
     /**
      * Calcula os dias corridos do período (inclusivo).
      */
-    public function diasCorridos2(): int
+    public function diasCorridos(): int
     {
         return $this->data_inicio->diffInDays($this->data_fim) + 1;
     }
-    public function diasCorridos(): int
+    public function scopeDiasCorridos(): int
     {
         return Carbon::parse($this->data_inicio)
             ->diffInDays(Carbon::parse($this->data_fim)) + 1;

@@ -233,7 +233,7 @@ class FolhaPagamento extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['competencia', 'status'])
+            ->logOnly(['competencia', 'status', 'salario_base'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
             // ->dontSubmitEmptyLogs();
@@ -245,6 +245,22 @@ class FolhaPagamento extends Model
         return Attribute::make(
             get: fn () => round($this->total_proventos - $this->total_descontos, 2)
         );
+    }
+
+     // Accessors
+    public function getTotalProventosAttribute()
+    {
+        return $this->lancamentos()->where('categoria', 'provento')->sum('valor_total');
+    }
+
+    public function getTotalDescontosAttribute()
+    {
+        return $this->lancamentos()->where('categoria', 'desconto')->sum('valor_total');
+    }
+
+    public function getSalarioLiquidoAttribute()
+    {
+        return $this->total_proventos - $this->total_descontos;
     }
 
 

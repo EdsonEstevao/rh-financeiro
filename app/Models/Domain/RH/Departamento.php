@@ -4,6 +4,7 @@ namespace App\Models\Domain\RH;
 
 use Illuminate\Database\Eloquent\{Builder, Model};
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * @property int $id
@@ -35,6 +36,13 @@ class Departamento extends Model
         return ['ativo' => 'boolean'];
     }
 
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['nome', 'ativo'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
     public function funcionarios(): HasMany
     {
         return $this->hasMany(Funcionario::class, 'departamento_id');
@@ -43,5 +51,10 @@ class Departamento extends Model
     public function scopeAtivos(Builder $query)
     {
         return $query->where('ativo', true);
+    }
+
+    public function scopeFuncionariosAtivos()
+    {
+        return $this->funcionarios()->ativos();
     }
 }

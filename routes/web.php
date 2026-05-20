@@ -3,17 +3,15 @@
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Admin\{ActivityLogController, PermissionController, RoleController, UserController};
-use App\Http\Controllers\RH\{CargoController, DepartamentoController, FolhaPagamentoController, FuncionarioController, PeriodoFeriasController};
-use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\{DashboardController, ProfileController};
+use App\Http\Controllers\RH\{CargoController, DepartamentoController, FolhaPagamentoController, FuncionarioController, PeriodoFeriasController, RhDashboardController};
 
 
 // Route::get('/', function () {
 //     return view('welcome');
 // });
 
-Route::get('/', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -34,9 +32,7 @@ Route::middleware(['auth', 'verified'])
     ->group(function () {
 
         // Dashboard RH
-        Route::get('/', function () {
-            return view('rh.dashboard');
-        })->middleware('permission:rh.dashboard.view')->name('dashboard');
+        Route::get('/dashboard', [RhDashboardController::class, 'index'])->middleware('permission:rh.dashboard.view')->name('dashboard');
 
         // ===================
         // Funcionários
@@ -73,14 +69,68 @@ Route::middleware(['auth', 'verified'])
 
 
         // Férias
-        Route::get('/ferias', [PeriodoFeriasController::class, 'index'])->name('ferias.index')->middleware('permission:ferias.view');
-        Route::get('/ferias/dashboard', [PeriodoFeriasController::class, 'dashboard'])->name('ferias.dashboard');
-        Route::get('/ferias/create', [PeriodoFeriasController::class, 'create'])->name('ferias.create');
-        Route::get('/ferias/{periodo}/edit', [PeriodoFeriasController::class, 'edit'])->name('ferias.edit');
-        Route::put('/ferias/{periodo}', [PeriodoFeriasController::class, 'update'])->name('ferias.update');
-        Route::get('/ferias/{periodo}', [PeriodoFeriasController::class, 'show'])->name('ferias.show');
-        Route::delete('/ferias/{periodo}', [PeriodoFeriasController::class, 'destroy'])->name('ferias.destroy');
-        Route::post('/ferias/{funcionario}/gerar', [PeriodoFeriasController::class, 'gerarNovoPeriodo'])->name('ferias.gerar');
+        // Route::get('/ferias', [PeriodoFeriasController::class, 'index'])->name('ferias.index')->middleware('permission:ferias.view');
+        // Route::get('/ferias/dashboard', [PeriodoFeriasController::class, 'dashboard'])->name('ferias.dashboard');
+        // Route::get('/ferias/create', [PeriodoFeriasController::class, 'create'])->name('ferias.create');
+        // Route::get('/ferias/{periodo}/edit', [PeriodoFeriasController::class, 'edit'])->name('ferias.edit');
+        // Route::put('/ferias/{periodo}', [PeriodoFeriasController::class, 'update'])->name('ferias.update');
+        // Route::get('/ferias/{periodo}', [PeriodoFeriasController::class, 'show'])->name('ferias.show');
+        // Route::delete('/ferias/{periodo}', [PeriodoFeriasController::class, 'destroy'])->name('ferias.destroy');
+        // Route::post('/ferias/{funcionario}/gerar', [PeriodoFeriasController::class, 'gerarNovoPeriodo'])->name('ferias.gerar');
+
+        // ============================================
+        // MÓDULO FÉRIAS - ROTAS CORRIGIDAS
+        // ============================================
+
+        // Dashboard de Férias
+        Route::get('/ferias/dashboard', [PeriodoFeriasController::class, 'dashboard'])
+            ->name('ferias.dashboard')
+            ->middleware('permission:ferias.view');
+
+        // Listagem de todos os períodos
+        Route::get('/ferias', [PeriodoFeriasController::class, 'index'])
+            ->name('ferias.index')
+            ->middleware('permission:ferias.view');
+
+        // ✅ Criar período para um funcionário específico (com parâmetro)
+        Route::get('/ferias/create/{funcionario}', [PeriodoFeriasController::class, 'create'])
+            ->name('ferias.create')
+            ->middleware('permission:ferias.create');
+
+        // ✅ Salvar novo período (estava faltando!)
+        Route::post('/ferias/{funcionario}', [PeriodoFeriasController::class, 'store'])
+            ->name('ferias.store')
+            ->middleware('permission:ferias.create');
+
+        // Visualizar período
+        Route::get('/ferias/{periodo}', [PeriodoFeriasController::class, 'show'])
+            ->name('ferias.show')
+            ->middleware('permission:ferias.view');
+
+        // Editar período
+        Route::get('/ferias/{periodo}/edit', [PeriodoFeriasController::class, 'edit'])
+            ->name('ferias.edit')
+            ->middleware('permission:ferias.edit');
+
+        // Atualizar período
+        Route::put('/ferias/{periodo}', [PeriodoFeriasController::class, 'update'])
+            ->name('ferias.update')
+            ->middleware('permission:ferias.edit');
+
+        // Cancelar período
+        Route::patch('/ferias/{periodo}/cancelar', [PeriodoFeriasController::class, 'cancelar'])
+            ->name('ferias.cancelar')
+            ->middleware('permission:ferias.cancel');
+
+        // Gerar novo período (atalho)
+        Route::post('/ferias/{funcionario}/gerar', [PeriodoFeriasController::class, 'gerarNovoPeriodo'])
+            ->name('ferias.gerar')
+            ->middleware('permission:ferias.create');
+
+        // Excluir período
+        Route::delete('/ferias/{periodo}', [PeriodoFeriasController::class, 'destroy'])
+            ->name('ferias.destroy')
+            ->middleware('permission:ferias.delete');
 
         // ===================
         // Departamentos (Resource)
@@ -213,7 +263,7 @@ Route::middleware(['auth', 'verified'])
 
         // Dashboard Financeiro
         Route::get('/', function () {
-            return view('financeiro.dashboard');
+            // return view('financeiro.dashboard');
         })->middleware('permission:financeiro.dashboard.view')->name('dashboard');
 
         // Boletos, cartões e outras funcionalidades

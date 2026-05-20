@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\RH;
 
 use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\Builder;
 
 use App\Http\Requests\RH\{FuncionarioStoreRequest, FuncionarioUpdateRequest};
 use App\Http\Controllers\Controller;
 use App\Services\RH\FuncionarioService;
 use App\Models\Domain\RH\{Cargo, Departamento, Funcionario};
+
 class FuncionarioController extends Controller
 {
     //
@@ -173,5 +175,27 @@ class FuncionarioController extends Controller
         // dd($funcionarios);
 
         return response()->json($funcionarios);
+    }
+
+    // Adicione este scope ao modelo Funcionario
+    public function scopeComDireitoFerias(Builder $query, $diasAntes = 30)
+    {
+        $hoje = now()->startOfDay();
+        $dataAlerta = $hoje->copy()->addDays($diasAntes);
+
+        return $query->where('ativo', true)
+            ->where(function($q) use ($hoje, $dataAlerta) {
+                // Funcionários que COMPLETARAM o período aquisitivo
+                // (periodo_aquisitivo_fim <= hoje + 30 dias)
+                $q->whereNotNull('periodo_aquisitivo_fim')
+                ->where('periodo_aquisitivo_fim', '<=', $dataAlerta->toDateString())
+                ->where('periodo_aquisitivo_fim', '>=', $hoje->copy()->subDays(30)->toDateString());
+            })
+            ->where('ferias_vencidas', false) // Não está vencida
+            ->whereDoesntHave('periodoFerias', function($q) {
+                // Não tem férias agendadas/gozadas para este período
+                $q->whereIn('status', ['aprovada', 'gozada'])
+                ->where('data_inicio', '>=', now()->subYear()->toDateString());
+            });
     }
 }

@@ -3,10 +3,9 @@ namespace App\Services\RH;
 
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 use App\Models\Domain\RH\{Funcionario, PeriodoFerias};
-
-
 
 class PeriodoFeriasService
 {
@@ -279,6 +278,7 @@ class PeriodoFeriasService
      */
     public function criarPeriodo(Funcionario $funcionario, array $dados): PeriodoFerias
     {
+        $dados['observacao'] = $dados['observacao'] ?? 'Férias agendadas e aprovadas pelo gestor: ' . Auth::user()->name;
         if (empty($dados['data_inicio']) || empty($dados['data_fim'])) {
             throw ValidationException::withMessages([
                 'data_inicio' => ['Data inicial é obrigatória.'],

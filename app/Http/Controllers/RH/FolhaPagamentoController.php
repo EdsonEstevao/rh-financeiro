@@ -882,25 +882,130 @@ class FolhaPagamentoController extends Controller
     /**
      * Relatório resumido da folha de pagamento
      */
+    //     return view('rh.folha-pagamento.resumo', compact('funcionarios', 'resumo', 'competencia'));
+    // }
+    // public function resumo(Request $request)
+    // {
+    //     $competencia = $request->get('competencia', now()->format('Y-m'));
+        
+    //     // ✅ Carrega os lançamentos
+    //     $folhas = FolhaPagamento::with([
+    //             'funcionario.departamento', 
+    //             'funcionario.cargo',
+    //             'lancamentos' // ✅ ESSENCIAL
+    //         ])
+    //         ->where('competencia', 'like', $competencia . '%')
+    //         ->get();
+
+    //     if ($folhas->isEmpty()) {
+    //         $funcionarios = Funcionario::ativos()
+    //             ->with(['departamento', 'cargo', 'contrato'])
+    //             ->get();
+            
+    //         $resumo = [
+    //             'total_funcionarios' => $funcionarios->count(),
+    //             'folha_bruta' => 0,
+    //             'total_descontos' => 0,
+    //             'folha_liquida' => 0,
+    //         ];
+            
+    //         $funcionarios->each(function($f) {
+    //             $f->salario_bruto = $f->contrato->salario_base ?? 0;
+    //             $f->total_descontos = 0;
+    //             $f->salario_liquido = $f->contrato->salario_base ?? 0;
+    //         });
+    //     } else {
+    //         // ✅ Calcula a partir dos lançamentos
+    //         $totalProventos = 0;
+    //         $totalDescontos = 0;
+            
+    //         foreach ($folhas as $folha) {
+    //             $totalProventos += $folha->lancamentos
+    //                 ->where('categoria', 'provento')
+    //                 ->sum('valor_total');
+                
+    //             $totalDescontos += $folha->lancamentos
+    //                 ->where('categoria', 'desconto')
+    //                 ->sum('valor_total');
+    //         }
+            
+    //         $resumo = [
+    //             'total_funcionarios' => $folhas->unique('funcionario_id')->count(),
+    //             'folha_bruta' => $totalProventos,
+    //             'total_descontos' => $totalDescontos,
+    //             'folha_liquida' => $totalProventos - $totalDescontos,
+    //         ];
+            
+    //         // Prepara funcionários
+    //         $funcionarios = $folhas->map(function($folha) {
+    //             $funcionario = $folha->funcionario;
+    //             $funcionario->salario_bruto = $folha->lancamentos
+    //                 ->where('categoria', 'provento')
+    //                 ->sum('valor_total');
+    //             $funcionario->total_descontos = $folha->lancamentos
+    //                 ->where('categoria', 'desconto')
+    //                 ->sum('valor_total');
+    //             $funcionario->salario_liquido = $funcionario->salario_bruto - $funcionario->total_descontos;
+    //             return $funcionario;
+    //         });
+    //     }
+
+    //     return view('rh.folha-pagamento.resumo', compact('funcionarios', 'resumo', 'competencia'));
+    // }
     public function resumo(Request $request)
     {
-        // dd($request->all());
+        $competencia = $request->get('competencia', now()->format('Y-m'));
+        
+        $folhas = FolhaPagamento::with([
+                'funcionario.departamento', 
+                'funcionario.cargo',
+                'lancamentos'
+            ])
+            ->where('competencia', 'like', $competencia . '%')
+            ->get();
 
-        $funcionarios = Funcionario::ativos()->with(['departamento', 'cargo'])->get();
+        $funcionarios = collect();
+        
+        if ($folhas->isEmpty()) {
+            $resumo = [
+                'total_funcionarios' => 0,
+                'folha_bruta' => 0,
+                'total_descontos' => 0,
+                'folha_liquida' => 0,
+            ];
+        } else {
+            $totalProventos = 0;
+            $totalDescontos = 0;
+            
+            $funcionarios = collect();
+            
+            foreach ($folhas as $folha) {
+                $proventos = (float) $folha->lancamentos->where('categoria', 'provento')->sum('valor_total');
+                $descontos = (float) $folha->lancamentos->where('categoria', 'desconto')->sum('valor_total');
+                
+                $totalProventos += $proventos;
+                $totalDescontos += $descontos;
+                
+                $funcionarios->push((object) [
+                    'id' => $folha->funcionario->id,
+                    'nome_completo' => $folha->funcionario->nome_completo,
+                    'departamento' => $folha->funcionario->departamento,
+                    'cargo' => $folha->funcionario->cargo,
+                    'salario_bruto' => $proventos,
+                    'total_descontos' => $descontos,
+                    'salario_liquido' => $proventos - $descontos,
+                ]);
+            }
+            
+            $resumo = [
+                'total_funcionarios' => $funcionarios->count(),
+                'folha_bruta' => $totalProventos,
+                'total_descontos' => $totalDescontos,
+                'folha_liquida' => $totalProventos - $totalDescontos,
+            ];
+        }
 
-        $resumo = [
-            'total_funcionarios' => $funcionarios->count(),
-            'folha_bruta' => $funcionarios->sum('salario_bruto'),
-            'total_descontos' => $funcionarios->sum('total_descontos'),
-            'folha_liquida' => $funcionarios->sum('salario_liquido'),
-            'total_inss' => $funcionarios->sum('desconto_inss_8_porcento'),
-            'total_vale_transporte' => $funcionarios->sum('valor_vale_transporte'),
-            'total_vale_alimentacao' => $funcionarios->sum('valor_vale_alimentacao'),
-            'total_horas_extras' => $funcionarios->sum('hora_extra'),
-            'total_salario_familia' => $funcionarios->sum('salario_familia'),
-        ];
-
-        return view('rh.folha-pagamento.resumo', compact('funcionarios', 'resumo'));
+        return view('rh.folha-pagamento.resumo', compact('funcionarios', 'resumo', 'competencia'));
     }
     public function resumoGeral(Request $request)
     {

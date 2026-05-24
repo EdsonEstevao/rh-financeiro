@@ -4,17 +4,19 @@ namespace App\Http\Controllers\RH;
 
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Builder;
+use Carbon\Carbon;
 
 use App\Http\Requests\RH\{FuncionarioStoreRequest, FuncionarioUpdateRequest};
 use App\Http\Controllers\Controller;
-use App\Services\RH\FuncionarioService;
+use App\Services\RH\{FuncionarioService, PeriodoFeriasService};
 use App\Models\Domain\RH\{Cargo, Departamento, Funcionario};
 
 class FuncionarioController extends Controller
 {
     //
      public function __construct(
-        private FuncionarioService $funcionarioService
+        private FuncionarioService $funcionarioService,
+        private PeriodoFeriasService $periodoService
     ) {}
 
     public function index(Request $request)
@@ -197,5 +199,52 @@ class FuncionarioController extends Controller
                 $q->whereIn('status', ['aprovada', 'gozada'])
                 ->where('data_inicio', '>=', now()->subYear()->toDateString());
             });
+    }
+
+    /**
+     * Demitir funcionário
+     */
+
+    public function formDemitir(Funcionario $funcionario)
+    {
+        return view('rh.funcionarios.demitir', compact('funcionario'));
+    }
+    public function demitir(Request $request, Funcionario $funcionario)
+    {
+        $validated = $request->validate([
+            'data_demissao' => 'required|date|after_or_equal:' . $funcionario->contrato->data_admissao,
+            'motivo'        => 'required|string|max:500',
+        ]);
+
+        $dataDemissao = Carbon::parse($validated['data_demissao']);
+
+        // Calcula férias rescisórias
+        $feriasRescisorias = $this->periodoService->calcularFeriasRescisorias($funcionario, $dataDemissao);
+
+        // Atualiza o contrato
+        $funcionario->contrato->update([
+            'data_demissao' => $dataDemissao->toDateString(),
+        ]);
+
+        // Inativa o funcionário
+        $funcionario->update([
+            'ativo' => false,
+            'observacoes' => trim(($funcionario->observacoes ?? '') . 
+                "\nDemitido em {$dataDemissao->format('d/m/Y')}. Motivo: {$validated['motivo']}"),
+        ]);
+
+        // Cancela férias futuras
+        $funcionario->periodoFerias()
+            ->whereIn('status', ['planejada', 'aprovada'])
+            ->where('data_inicio', '>', $dataDemissao)
+            ->update([
+                'status' => 'cancelada',
+                'observacao' => 'Cancelada devido à demissão em ' . $dataDemissao->format('d/m/Y'),
+            ]);
+
+        return redirect()
+            ->route('rh.funcionarios.show', $funcionario)
+            ->with('success', "Funcionário demitido em {$dataDemissao->format('d/m/Y')}. " .
+                    "Férias rescisórias: {$feriasRescisorias['total_dias_pagar']} dias a pagar.");
     }
 }

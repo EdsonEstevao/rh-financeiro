@@ -77,14 +77,37 @@
             </a>
 
             @can('funcionarios.edit', $funcionario)
-                <a href="{{ route('rh.funcionarios.edit', $funcionario) }}"
+                {{-- <a href="{{ route('rh.funcionarios.edit', $funcionario) }}"
                     class="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors">
                     <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
                         <path
                             d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
                     </svg>
                     Editar
-                </a>
+                </a> --}}
+                {{-- No topo da página de detalhes --}}
+                <div class="flex items-center gap-3">
+                    @if ($funcionario->ativo)
+                        <a href="{{ route('rh.funcionarios.edit', $funcionario) }}"
+                            class="px-4 py-2 text-sm text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">
+                            ✏️ Editar
+                        </a>
+
+                        {{-- ✅ Botão Demitir --}}
+                        <a href="{{ route('rh.funcionarios.demitir.form', $funcionario) }}"
+                            class="px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700"
+                            onclick="return confirm('Atenção! Deseja demitir {{ $funcionario->nome_completo }}?')">
+                            🗑️ Demitir
+                        </a>
+                    @else
+                        <span class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium">
+                            🚫 Inativo desde
+                            {{ $funcionario->contrato?->data_demissao
+                                ? Carbon::parse($funcionario->contrato->data_demissao)->format('d/m/Y')
+                                : 'N/A' }}
+                        </span>
+                    @endif
+                </div>
             @endcan
 
             @can('rh.funcionarios.folha')
@@ -434,122 +457,126 @@
 
         {{-- ─── ABA: FINANCEIRO ─── --}}
         <!-- <div x-show="tab === 'financeiro'" x-transition.opacity>
-                                                        <div class="space-y-5">
+                                                                <div class="space-y-5">
 
-                                                            {{-- Proventos --}}
-                                                            <div class="overflow-hidden bg-white rounded-lg shadow ring-1 ring-black/5">
-                                                                <div class="px-6 py-3 border-b border-gray-100 bg-emerald-50">
-                                                                    <h2 class="text-sm font-semibold tracking-wide uppercase text-emerald-700">Proventos</h2>
-                                                                </div>
-                                                                <div class="p-6">
-                                                                    <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
-                                                                        <x-rh.show-field label="Salário Base" :value="'R$ ' .
-                                                                            number_format(
-                                                                                $funcionario->salario_base ?? 0,
-                                                                                2,
-                                                                                ',',
-                                                                                '.',
-                                                                            )" />
-                                                                        <x-rh.show-field label="Gratificação / Provento" :value="'R$ ' .
-                                                                            number_format(
-                                                                                $funcionario->gratificacao_provento ??
-                                                                                    0,
-                                                                                2,
-                                                                                ',',
-                                                                                '.',
-                                                                            )" />
-                                                                        <x-rh.show-field label="DSR Hora Extra" :value="'R$ ' .
-                                                                            number_format(
-                                                                                $funcionario->horas_extras_totais ?? 0,
-                                                                                2,
-                                                                                ',',
-                                                                                '.',
-                                                                            )" />
-                                                                        <x-rh.show-field label="Hora Extra" :value="'R$ ' .
-                                                                            number_format(
-                                                                                $funcionario->valor_hora_extra ?? 0,
-                                                                                2,
-                                                                                ',',
-                                                                                '.',
-                                                                            )" />
-                                                                        <x-rh.show-field label="Salário Família" :value="'R$ ' .
-                                                                            number_format(
-                                                                                $funcionario->salario_familia ?? 0,
-                                                                                2,
-                                                                                ',',
-                                                                                '.',
-                                                                            )" />
-                                                                        <x-rh.show-field label="Vale Extra" :value="'R$ ' .
-                                                                            number_format(
-                                                                                $funcionario->vale_extra ?? 0,
-                                                                                2,
-                                                                                ',',
-                                                                                '.',
-                                                                            )" />
-                                                                    </dl>
+                                                                    {{-- Proventos --}}
+                                                                    <div class="overflow-hidden bg-white rounded-lg shadow ring-1 ring-black/5">
+                                                                        <div class="px-6 py-3 border-b border-gray-100 bg-emerald-50">
+                                                                            <h2 class="text-sm font-semibold tracking-wide uppercase text-emerald-700">Proventos</h2>
+                                                                        </div>
+                                                                        <div class="p-6">
+                                                                            <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
+                                                                                <x-rh.show-field label="Salário Base" :value="'R$ ' .
+                                                                                    number_format(
+                                                                                        $funcionario->salario_base ?? 0,
+                                                                                        2,
+                                                                                        ',',
+                                                                                        '.',
+                                                                                    )" />
+                                                                                <x-rh.show-field label="Gratificação / Provento" :value="'R$ ' .
+                                                                                    number_format(
+                                                                                        $funcionario->gratificacao_provento ??
+                                                                                            0,
+                                                                                        2,
+                                                                                        ',',
+                                                                                        '.',
+                                                                                    )" />
+                                                                                <x-rh.show-field label="DSR Hora Extra" :value="'R$ ' .
+                                                                                    number_format(
+                                                                                        $funcionario->horas_extras_totais ??
+                                                                                            0,
+                                                                                        2,
+                                                                                        ',',
+                                                                                        '.',
+                                                                                    )" />
+                                                                                <x-rh.show-field label="Hora Extra" :value="'R$ ' .
+                                                                                    number_format(
+                                                                                        $funcionario->valor_hora_extra ??
+                                                                                            0,
+                                                                                        2,
+                                                                                        ',',
+                                                                                        '.',
+                                                                                    )" />
+                                                                                <x-rh.show-field label="Salário Família" :value="'R$ ' .
+                                                                                    number_format(
+                                                                                        $funcionario->salario_familia ??
+                                                                                            0,
+                                                                                        2,
+                                                                                        ',',
+                                                                                        '.',
+                                                                                    )" />
+                                                                                <x-rh.show-field label="Vale Extra" :value="'R$ ' .
+                                                                                    number_format(
+                                                                                        $funcionario->vale_extra ?? 0,
+                                                                                        2,
+                                                                                        ',',
+                                                                                        '.',
+                                                                                    )" />
+                                                                            </dl>
 
-                                                                    <div class="flex items-center justify-between px-4 py-3 mt-4 rounded-md bg-emerald-50">
-                                                                        <span class="text-sm font-semibold text-emerald-700">Total Bruto</span>
-                                                                        <span class="text-lg font-bold text-emerald-700">
-                                                                            R$ {{ number_format($funcionario->folhasPagamento->sum('salario_bruto'), 2, ',', '.') }}
-                                                                        </span>
+                                                                            <div class="flex items-center justify-between px-4 py-3 mt-4 rounded-md bg-emerald-50">
+                                                                                <span class="text-sm font-semibold text-emerald-700">Total Bruto</span>
+                                                                                <span class="text-lg font-bold text-emerald-700">
+                                                                                    R$ {{ number_format($funcionario->folhasPagamento->sum('salario_bruto'), 2, ',', '.') }}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {{-- Descontos --}}
+                                                                    <div class="overflow-hidden bg-white rounded-lg shadow ring-1 ring-black/5">
+                                                                        <div class="px-6 py-3 border-b border-gray-100 bg-red-50">
+                                                                            <h2 class="text-sm font-semibold tracking-wide text-red-700 uppercase">Descontos</h2>
+                                                                        </div>
+                                                                        <div class="p-6">
+                                                                            <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
+                                                                                <x-rh.show-field label="INSS (8%)" :value="'R$ ' .
+                                                                                    number_format(
+                                                                                        $funcionario->desconto_inss_8_porcento ??
+                                                                                            0,
+                                                                                        2,
+                                                                                        ',',
+                                                                                        '.',
+                                                                                    )" />
+                                                                                <x-rh.show-field label="Faltas (Qtd.)" :value="$funcionario->faltas ?? '0'" />
+                                                                                <x-rh.show-field label="DSR Faltas" :value="'R$ ' .
+                                                                                    number_format(
+                                                                                        $funcionario->dsr_faltas ?? 0,
+                                                                                        2,
+                                                                                        ',',
+                                                                                        '.',
+                                                                                    )" />
+                                                                                <x-rh.show-field label="Desconto Faltas" :value="'R$ ' .
+                                                                                    number_format(
+                                                                                        $funcionario->desconto_faltas ??
+                                                                                            0,
+                                                                                        2,
+                                                                                        ',',
+                                                                                        '.',
+                                                                                    )" />
+                                                                            </dl>
+                                                                            <div class="flex items-center justify-between px-4 py-3 mt-4 rounded-md bg-red-50">
+                                                                                <span class="text-sm font-semibold text-red-700">Total Descontos</span>
+                                                                                <span class="text-lg font-bold text-red-700">
+                                                                                    R$ {{ number_format($funcionario->total_descontos, 2, ',', '.') }}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {{-- Líquido --}}
+                                                                    <div
+                                                                        class="flex items-center justify-between px-6 py-5 rounded-lg shadow bg-indigo-50 ring-1 ring-indigo-200">
+                                                                        <div>
+                                                                            <p class="text-sm font-semibold tracking-wide text-indigo-700 uppercase">Salário Líquido</p>
+                                                                            <p class="text-xs text-indigo-500 mt-0.5">Bruto menos descontos</p>
+                                                                        </div>
+                                                                        <p class="text-2xl font-extrabold text-indigo-700">
+                                                                            R$ {{ number_format($funcionario->salario_liquido, 2, ',', '.') }}
+                                                                        </p>
                                                                     </div>
                                                                 </div>
-                                                            </div>
-
-                                                            {{-- Descontos --}}
-                                                            <div class="overflow-hidden bg-white rounded-lg shadow ring-1 ring-black/5">
-                                                                <div class="px-6 py-3 border-b border-gray-100 bg-red-50">
-                                                                    <h2 class="text-sm font-semibold tracking-wide text-red-700 uppercase">Descontos</h2>
-                                                                </div>
-                                                                <div class="p-6">
-                                                                    <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-5">
-                                                                        <x-rh.show-field label="INSS (8%)" :value="'R$ ' .
-                                                                            number_format(
-                                                                                $funcionario->desconto_inss_8_porcento ??
-                                                                                    0,
-                                                                                2,
-                                                                                ',',
-                                                                                '.',
-                                                                            )" />
-                                                                        <x-rh.show-field label="Faltas (Qtd.)" :value="$funcionario->faltas ?? '0'" />
-                                                                        <x-rh.show-field label="DSR Faltas" :value="'R$ ' .
-                                                                            number_format(
-                                                                                $funcionario->dsr_faltas ?? 0,
-                                                                                2,
-                                                                                ',',
-                                                                                '.',
-                                                                            )" />
-                                                                        <x-rh.show-field label="Desconto Faltas" :value="'R$ ' .
-                                                                            number_format(
-                                                                                $funcionario->desconto_faltas ?? 0,
-                                                                                2,
-                                                                                ',',
-                                                                                '.',
-                                                                            )" />
-                                                                    </dl>
-                                                                    <div class="flex items-center justify-between px-4 py-3 mt-4 rounded-md bg-red-50">
-                                                                        <span class="text-sm font-semibold text-red-700">Total Descontos</span>
-                                                                        <span class="text-lg font-bold text-red-700">
-                                                                            R$ {{ number_format($funcionario->total_descontos, 2, ',', '.') }}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            {{-- Líquido --}}
-                                                            <div
-                                                                class="flex items-center justify-between px-6 py-5 rounded-lg shadow bg-indigo-50 ring-1 ring-indigo-200">
-                                                                <div>
-                                                                    <p class="text-sm font-semibold tracking-wide text-indigo-700 uppercase">Salário Líquido</p>
-                                                                    <p class="text-xs text-indigo-500 mt-0.5">Bruto menos descontos</p>
-                                                                </div>
-                                                                <p class="text-2xl font-extrabold text-indigo-700">
-                                                                    R$ {{ number_format($funcionario->salario_liquido, 2, ',', '.') }}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </div> -->
+                                                            </div> -->
 
         {{-- ─── ABA: BENEFÍCIOS ─── --}}
         <div x-show="tab === 'beneficios'" x-transition.opacity>

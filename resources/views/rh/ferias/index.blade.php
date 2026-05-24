@@ -47,6 +47,14 @@
 
         {{-- Tabela --}}
         <div class="overflow-hidden bg-white rounded-lg shadow">
+            @php
+                $statusColors = [
+                    'planejada' => 'bg-yellow-100 text-yellow-800',
+                    'aprovada' => 'bg-blue-100 text-blue-800',
+                    'gozada' => 'bg-green-100 text-green-800',
+                    'cancelada' => 'bg-red-100 text-red-800',
+                ];
+            @endphp
             <div class="overflow-x-auto">
                 <table class="min-w-full text-sm divide-y divide-gray-200">
                     <thead class="bg-gray-50">
@@ -73,12 +81,8 @@
                                     {{ $periodo->data_inicio->diffInDays($periodo->data_fim) + 1 }} dias
                                 </td>
                                 <td class="px-4 py-3 text-center">
-                                    <span
-                                        class="px-2 py-1 text-xs rounded-full
-                                @if ($periodo->status === 'gozada') bg-green-100 text-green-800
-                                @elseif($periodo->status === 'aprovada') bg-blue-100 text-blue-800
-                                @elseif($periodo->status === 'planejada') bg-yellow-100 text-yellow-800
-                                @else bg-red-100 text-red-800 @endif">
+
+                                    <span class="px-2 py-1 text-xs rounded-full {{ $statusColors[$periodo->status] }}">
                                         {{ ucfirst($periodo->status) }}
                                     </span>
                                 </td>

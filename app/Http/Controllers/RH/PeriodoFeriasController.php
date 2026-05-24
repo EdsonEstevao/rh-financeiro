@@ -12,12 +12,6 @@ use App\Services\RH\PeriodoFeriasService;
 
 class PeriodoFeriasController extends Controller
 {
-    // public  $periodoFeriasService;
-    // public function __construct(
-    //     protected PeriodoFeriasService $periodoService)
-    // {
-
-    // }
 
     public function __construct(
         protected PeriodoFeriasService $periodoService,
@@ -28,65 +22,182 @@ class PeriodoFeriasController extends Controller
     /**
      * Dashboard - Visão geral de férias
      */
-    public function dashboard()
-    {
-        $hoje = now()->startOfDay();
-        $daqui30dias = $hoje->copy()->addDays(30);
-        $daqui60dias = $hoje->copy()->addDays(60);
-        $daqui90dias = $hoje->copy()->addDays(90);
+//    public function dashboard()
+// {
+//     $hoje = now()->startOfDay();
+//     $daqui30dias = $hoje->copy()->addDays(30);
+//     $daqui60dias = $hoje->copy()->addDays(60);
+//     $daqui90dias = $hoje->copy()->addDays(90);
+//     $umAnoAtras = $hoje->copy()->subYear();
 
-        // ✅ Base query reutilizável para funcionários ativos
-        $funcionariosAtivos = fn() => Funcionario::where('ativo', true)
-            ->with(['cargo', 'contrato']);
+//     // ✅ Férias Vencidas - TODOS os casos
+//     $feriasVencidas = Funcionario::where('ativo', true)
+//         ->where(function($query) use ($hoje) {
+//             // Caso 1: Flag ferias_vencidas = true
+//             $query->where('ferias_vencidas', true);
+            
+//             // Caso 2: ferias_vencimento já passou (mesmo sem flag)
+//             $query->orWhere(function($q) use ($hoje) {
+//                 $q->whereNotNull('ferias_vencimento')
+//                   ->where('ferias_vencimento', '<', $hoje->toDateString())
+//                   ->where('ferias_vencidas', false); // Não tem flag mas está vencida
+//             });
+            
+//             // Caso 3: Nunca tirou férias e já passou 2 anos da admissão
+//             $query->orWhere(function($q) use ($hoje) {
+//                 $q->whereNull('ferias_vencimento')
+//                   ->whereHas('contrato', function($sub) use ($hoje) {
+//                       $sub->where('data_admissao', '<', $hoje->copy()->subYears(2)->toDateString());
+//                   });
+//             });
+//         })
+//         ->with(['cargo', 'contrato'])
+//         ->get();
 
-        // Férias vencidas (em dobro)
-        $feriasVencidas = $funcionariosAtivos()
-            ->where('ferias_vencidas', true)
-            ->get();
+//     // ✅ Vencendo em 30 dias
+//     $vencendo30dias = Funcionario::where('ativo', true)
+//         ->where('ferias_vencidas', false)
+//         ->whereNotNull('ferias_vencimento')
+//         ->whereBetween('ferias_vencimento', [$hoje->toDateString(), $daqui30dias->toDateString()])
+//         ->with(['cargo', 'contrato'])
+//         ->get();
 
-        // Férias vencendo em 30 dias
-        $vencendo30dias = $funcionariosAtivos()
-            ->whereBetween('ferias_vencimento', [$hoje, $daqui30dias])
-            ->where('ferias_vencidas', false)
-            ->get();
+//     // ✅ Vencendo em 60 dias
+//     $vencendo60dias = Funcionario::where('ativo', true)
+//         ->where('ferias_vencidas', false)
+//         ->whereNotNull('ferias_vencimento')
+//         ->whereBetween('ferias_vencimento', [$daqui30dias->toDateString(), $daqui60dias->toDateString()])
+//         ->with(['cargo', 'contrato'])
+//         ->get();
 
-        // Férias vencendo em 60 dias
-        $vencendo60dias = $funcionariosAtivos()
-            ->whereBetween('ferias_vencimento', [$daqui30dias, $daqui60dias])
-            ->where('ferias_vencidas', false)
-            ->get();
+//     // ✅ Vencendo em 90 dias
+//     $vencendo90dias = Funcionario::where('ativo', true)
+//         ->where('ferias_vencidas', false)
+//         ->whereNotNull('ferias_vencimento')
+//         ->whereBetween('ferias_vencimento', [$daqui60dias->toDateString(), $daqui90dias->toDateString()])
+//         ->with(['cargo', 'contrato'])
+//         ->get();
 
-        // Férias vencendo em 90 dias
-        $vencendo90dias = $funcionariosAtivos()
-            ->whereBetween('ferias_vencimento', [$daqui60dias, $daqui90dias])
-            ->where('ferias_vencidas', false)
-            ->get();
+//     // ✅ Atualiza flag automaticamente para quem está vencido
+//     Funcionario::where('ativo', true)
+//         ->where('ferias_vencidas', false)
+//         ->whereNotNull('ferias_vencimento')
+//         ->where('ferias_vencimento', '<', $hoje->toDateString())
+//         ->update(['ferias_vencidas' => true]);
 
-        // ✅ Próximas férias agendadas - adicionado 'programada' também
-        $feriasAgendadas = PeriodoFerias::with('funcionario.cargo')
-            ->whereIn('status', ['aprovada', 'planejada'])
-            ->where('data_inicio', '>=', $hoje)
-            ->orderBy('data_inicio')
-            ->limit(10)
-            ->get();
+//     // Próximas férias agendadas
+//     $feriasAgendadas = PeriodoFerias::with('funcionario.cargo')
+//         ->whereIn('status', ['aprovada', 'planejada'])
+//         ->where('data_inicio', '>=', $hoje)
+//         ->orderBy('data_inicio')
+//         ->limit(10)
+//         ->get();
 
-        // ✅ Férias em andamento - status pode ser 'gozada' ou 'aprovada' (se já iniciou)
-        $feriasEmAndamento = PeriodoFerias::with('funcionario.cargo')
-            ->whereIn('status', ['gozada', 'aprovada'])
-            ->where('data_inicio', '<=', $hoje)
-            ->where('data_fim', '>=', $hoje)
-            ->get();
+//     // Férias em andamento
+//     $feriasEmAndamento = PeriodoFerias::with('funcionario.cargo')
+//         ->whereIn('status', ['gozada', 'aprovada'])
+//         ->where('data_inicio', '<=', $hoje)
+//         ->where('data_fim', '>=', $hoje)
+//         ->get();
 
-        return view('rh.ferias.dashboard', compact(
-            'feriasVencidas',
-            'vencendo30dias',
-            'vencendo60dias',
-            'vencendo90dias',
-            'feriasAgendadas',
-            'feriasEmAndamento'
-        ));
-    }
+//     return view('rh.ferias.dashboard', compact(
+//         'feriasVencidas',
+//         'vencendo30dias',
+//         'vencendo60dias',
+//         'vencendo90dias',
+//         'feriasAgendadas',
+//         'feriasEmAndamento'
+//     ));
+// }
 
+public function dashboard()
+{
+    $hoje = now()->startOfDay();
+    $daqui30dias = $hoje->copy()->addDays(30);
+    $daqui60dias = $hoje->copy()->addDays(60);
+    $daqui90dias = $hoje->copy()->addDays(90);
+
+    // ✅ ATUALIZA FLAGS automaticamente antes de buscar
+    Funcionario::where('ativo', true)
+        ->where('ferias_vencidas', false)
+        ->whereNotNull('ferias_vencimento')
+        ->where('ferias_vencimento', '<', $hoje->toDateString())
+        ->update(['ferias_vencidas' => true]);
+
+    // Também atualiza quem nunca tirou férias (2+ anos de admissão sem ferias_vencimento)
+    Funcionario::where('ativo', true)
+        ->where('ferias_vencidas', false)
+        ->whereNull('ferias_vencimento')
+        ->whereHas('contrato', function($q) use ($hoje) {
+            $q->where('data_admissao', '<', $hoje->copy()->subYears(2)->toDateString());
+        })
+        ->update([
+            'ferias_vencidas' => true,
+            'ferias_em_dobro' => true,
+        ]);
+
+    // ✅ Base query reutilizável para funcionários ativos
+    $funcionariosAtivos = fn() => Funcionario::where('ativo', true)
+        ->with(['cargo', 'contrato']);
+
+    // ✅ Férias vencidas (em dobro) - CORRIGIDO
+    $feriasVencidas = $funcionariosAtivos()
+        ->where(function($query) use ($hoje) {
+            // Flag ativa
+            $query->where('ferias_vencidas', true);
+            // OU vencimento já passou
+            $query->orWhere(function($q) use ($hoje) {
+                $q->whereNotNull('ferias_vencimento')
+                  ->where('ferias_vencimento', '<', $hoje->toDateString());
+            });
+        })
+        ->get();
+
+    // Férias vencendo em 30 dias
+    $vencendo30dias = $funcionariosAtivos()
+        ->where('ferias_vencidas', false)
+        ->whereNotNull('ferias_vencimento')
+        ->whereBetween('ferias_vencimento', [$hoje->toDateString(), $daqui30dias->toDateString()])
+        ->get();
+
+    // Férias vencendo em 60 dias
+    $vencendo60dias = $funcionariosAtivos()
+        ->where('ferias_vencidas', false)
+        ->whereNotNull('ferias_vencimento')
+        ->whereBetween('ferias_vencimento', [$daqui30dias->toDateString(), $daqui60dias->toDateString()])
+        ->get();
+
+    // Férias vencendo em 90 dias
+    $vencendo90dias = $funcionariosAtivos()
+        ->where('ferias_vencidas', false)
+        ->whereNotNull('ferias_vencimento')
+        ->whereBetween('ferias_vencimento', [$daqui60dias->toDateString(), $daqui90dias->toDateString()])
+        ->get();
+
+    // Próximas férias agendadas
+    $feriasAgendadas = PeriodoFerias::with('funcionario.cargo')
+        ->whereIn('status', ['aprovada', 'planejada'])
+        ->where('data_inicio', '>=', $hoje)
+        ->orderBy('data_inicio')
+        ->limit(10)
+        ->get();
+
+    // Férias em andamento
+    $feriasEmAndamento = PeriodoFerias::with('funcionario.cargo')
+        ->whereIn('status', ['gozada', 'aprovada'])
+        ->where('data_inicio', '<=', $hoje)
+        ->where('data_fim', '>=', $hoje)
+        ->get();
+
+    return view('rh.ferias.dashboard', compact(
+        'feriasVencidas',
+        'vencendo30dias',
+        'vencendo60dias',
+        'vencendo90dias',
+        'feriasAgendadas',
+        'feriasEmAndamento'
+    ));
+}
     /**
      * Listagem de todos os períodos de férias
      */
@@ -94,16 +205,12 @@ class PeriodoFeriasController extends Controller
     {
         $status = $request->status ?? '';
         $funcionario = $request->funcionario ?? '';
-
-        // $query = PeriodoFerias::with(['funcionario.cargo', 'funcionario.contrato'])
-        //     ->orderBy('data_inicio', 'desc');
+        
         $query = PeriodoFerias::with(['funcionario.cargo', 'funcionario.contrato'])
                 ->join('funcionarios', 'periodos_ferias.funcionario_id', '=', 'funcionarios.id')
                 ->orderBy('funcionarios.nome_completo', 'asc')
                 ->orderBy('periodos_ferias.numero_periodo', 'asc')
-                ->select('periodos_ferias.*');
-
-        // dd($query->get());
+                ->select('periodos_ferias.*');        
 
         // ✅ Filtro por status
         if ($status) {
@@ -130,9 +237,7 @@ class PeriodoFeriasController extends Controller
      */
     public function create(Funcionario $funcionario)
     {
-        // $funcionario->load(['cargo', 'contrato', 'periodoFerias' => function($query) {
-        //     $query->orderBy('data_inicio', 'desc');
-        // }]);
+        // ✅ Carregar contrato também (necessário para mostrar data_admissao)
         $funcionario->load(['cargo', 'departamento', 'contrato', 'periodoFerias' => function($query) {
             $query->orderBy('data_inicio', 'desc');
         }]);
@@ -199,11 +304,6 @@ class PeriodoFeriasController extends Controller
         if($validated['status'] === 'gozada' && $statusAnterior != 'gozada') {
             event(new PeriodoFeriasGozado($periodo->fresh()));
         }
-
-        // ✅ Atualiza flags do funcionário conforme status
-        // $this->atualizarFlagsFerias($periodo->funcionario, $validated['status']);
-
-
 
         return redirect()
             ->route('rh.ferias.index')

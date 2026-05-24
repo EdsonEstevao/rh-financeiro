@@ -2,14 +2,14 @@
 
 {{-- Lançamentos Detalhados --}}
 @extends('layouts.app')
-@dd('teste')
+
 @section('content')
-    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
         <!-- Header -->
         <div class="mb-6 sm:flex sm:items-center sm:justify-between">
             <div class="flex items-center">
-                <a href="{{ route('rh.folha-pagamento.index') }}" class="text-gray-400 hover:text-gray-600 mr-4">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <a href="{{ route('rh.folha-pagamento.index') }}" class="mr-4 text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                     </svg>
                 </a>
@@ -33,17 +33,17 @@
                     </p>
                 </div>
             </div>
-            <div class="bg-white rounded-lg shadow mt-6">
+            <div class="mt-6 bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b border-gray-200">
                     <h2 class="text-lg font-semibold text-gray-800">📋 Lançamentos Detalhados</h2>
                 </div>
 
                 <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 
                         {{-- Proventos --}}
                         <div>
-                            <h3 class="font-semibold text-green-700 mb-3">💵 Proventos</h3>
+                            <h3 class="mb-3 font-semibold text-green-700">💵 Proventos</h3>
                             <table class="min-w-full text-sm">
                                 <thead class="bg-green-50">
                                     <tr>
@@ -72,13 +72,13 @@
                                                     -
                                                 @endif
                                             </td>
-                                            <td class="px-3 py-2 text-right font-medium">
+                                            <td class="px-3 py-2 font-medium text-right">
                                                 R$ {{ number_format($lancamento->valor_total, 2, ',', '.') }}
                                             </td>
                                         </tr>
                                     @endforeach
                                 </tbody>
-                                <tfoot class="bg-green-50 font-bold">
+                                <tfoot class="font-bold bg-green-50">
                                     <tr>
                                         <td class="px-3 py-2">Total Proventos</td>
                                         <td></td>
@@ -93,7 +93,7 @@
 
                         {{-- Descontos --}}
                         <div>
-                            <h3 class="font-semibold text-red-700 mb-3">📉 Descontos</h3>
+                            <h3 class="mb-3 font-semibold text-red-700">📉 Descontos</h3>
                             <table class="min-w-full text-sm">
                                 <thead class="bg-red-50">
                                     <tr>
@@ -105,13 +105,13 @@
                                     @foreach ($folhaPagamento->lancamentos->where('categoria', 'desconto') as $lancamento)
                                         <tr>
                                             <td class="px-3 py-2">{{ $lancamento->descricao }}</td>
-                                            <td class="px-3 py-2 text-right font-medium text-red-700">
+                                            <td class="px-3 py-2 font-medium text-right text-red-700">
                                                 - R$ {{ number_format($lancamento->valor_total, 2, ',', '.') }}
                                             </td>
                                         </tr>
                                     @endforeach
                                 </tbody>
-                                <tfoot class="bg-red-50 font-bold">
+                                <tfoot class="font-bold bg-red-50">
                                     <tr>
                                         <td class="px-3 py-2">Total Descontos</td>
                                         <td class="px-3 py-2 text-right text-red-800">

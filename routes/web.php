@@ -51,6 +51,14 @@ Route::middleware(['auth', 'verified'])
                 Route::delete('/funcionarios/{funcionario}', [FuncionarioController::class, 'destroy'])->name('funcionarios.destroy')->middleware('permission:funcionarios.delete');
 
                 Route::get('/funcionarios/buscar', [FuncionarioController::class, 'buscar'])->name('funcionarios.buscar');
+
+                Route::get('/funcionarios/{funcionario}/demitir', [FuncionarioController::class, 'formDemitir'])
+                    ->middleware('can:funcionarios.edit')
+                    ->name('funcionarios.demitir.form');
+
+                Route::post('/funcionarios/{funcionario}/demitir', [FuncionarioController::class, 'demitir'])
+                    ->middleware('can:funcionarios.edit')
+                    ->name('funcionarios.demitir');
             // });
 
 

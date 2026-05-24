@@ -320,29 +320,30 @@
                         </div>
                     </div>
                 </div>
-
-                {{-- Quarta linha (2 gráficos) --}}
-                <div class="grid grid-cols-1 gap-6 mb-8 lg:grid-cols-2">
-                    {{-- Folha (bruto x líquido) --}}
-                    <div class="p-6 bg-white rounded-lg shadow-lg">
-                        <h3 class="mb-4 text-lg font-semibold text-gray-900">Folha (Bruto x Líquido) - últimos 6 meses</h3>
-                        <div class="h-80">
-                            <canvas id="folhaChart"></canvas>
+                @role('admin')
+                    {{-- Quarta linha (2 gráficos) --}}
+                    <div class="grid grid-cols-1 gap-6 mb-8 lg:grid-cols-2">
+                        {{-- Folha (bruto x líquido) --}}
+                        <div class="p-6 bg-white rounded-lg shadow-lg">
+                            <h3 class="mb-4 text-lg font-semibold text-gray-900">Folha (Bruto x Líquido) - últimos 6 meses</h3>
+                            <div class="h-80">
+                                <canvas id="folhaChart"></canvas>
+                            </div>
+                            <p class="mt-3 text-xs text-gray-500">
+                                Considera apenas folhas com status <span class="font-medium">fechada</span> e soma via tabela
+                                <span class="font-medium">holerites</span>.
+                            </p>
                         </div>
-                        <p class="mt-3 text-xs text-gray-500">
-                            Considera apenas folhas com status <span class="font-medium">fechada</span> e soma via tabela
-                            <span class="font-medium">holerites</span>.
-                        </p>
-                    </div>
 
-                    {{-- Admissões vs Demissões --}}
-                    <div class="p-6 bg-white rounded-lg shadow-lg">
-                        <h3 class="mb-4 text-lg font-semibold text-gray-900">Admissões vs Demissões - últimos 12 meses</h3>
-                        <div class="h-80">
-                            <canvas id="admissoesChart"></canvas>
+                        {{-- Admissões vs Demissões --}}
+                        <div class="p-6 bg-white rounded-lg shadow-lg">
+                            <h3 class="mb-4 text-lg font-semibold text-gray-900">Admissões vs Demissões - últimos 12 meses</h3>
+                            <div class="h-80">
+                                <canvas id="admissoesChart"></canvas>
+                            </div>
                         </div>
                     </div>
-                </div>
+                @endrole
 
                 {{-- Quinta linha (3 gráficos menores) --}}
                 <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">

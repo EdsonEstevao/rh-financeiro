@@ -2,10 +2,10 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-full px-4 mx-auto sm:px-6 lg:px-8">
 
         {{-- Header --}}
-        <div class="mb-6 flex items-center justify-between">
+        <div class="flex items-center justify-between mb-6">
             <div>
                 <h1 class="text-2xl font-bold text-gray-900">Folhas de Pagamento</h1>
                 <p class="mt-1 text-sm text-gray-600">
@@ -14,23 +14,23 @@
                 </p>
             </div>
             <a href="{{ route('rh.folha-pagamento.create') }}"
-                class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700">
+                class="inline-flex items-center px-4 py-2 text-xs font-semibold tracking-widest text-white uppercase bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700">
                 + Nova Folha
             </a>
         </div>
 
         {{-- Filtros --}}
-        <div class="bg-white rounded-lg shadow mb-6 p-4">
-            <form action="{{ route('rh.folha-pagamento.index') }}" method="GET" class="flex gap-4 items-end">
+        <div class="p-4 mb-6 bg-white rounded-lg shadow">
+            <form action="{{ route('rh.folha-pagamento.index') }}" method="GET" class="flex items-end gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">📅 Competência</label>
                     <input type="month" name="competencia" value="{{ $competencia }}"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">📌 Status</label>
                     <select name="status"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                         <option value="">Todos</option>
                         <option value="aberta" {{ $status === 'aberta' ? 'selected' : '' }}>Aberta</option>
                         <option value="fechada" {{ $status === 'fechada' ? 'selected' : '' }}>Fechada</option>
@@ -38,13 +38,13 @@
                 </div>
                 <div>
                     <button type="submit"
-                        class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm">
+                        class="px-4 py-2 text-sm text-white bg-indigo-600 rounded-md hover:bg-indigo-700">
                         🔍 Filtrar
                     </button>
                 </div>
                 <div>
                     <a href="{{ route('rh.folha-pagamento.resumo-geral', ['competencia' => $competencia]) }}"
-                        class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm inline-flex items-center">
+                        class="inline-flex items-center px-4 py-2 text-sm text-white bg-green-600 rounded-md hover:bg-green-700">
                         📊 Resumo Geral
                     </a>
                 </div>
@@ -52,67 +52,67 @@
         </div>
 
         {{-- Tabela de Folhas --}}
-        <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="overflow-hidden bg-white rounded-lg shadow">
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <table class="min-w-full text-sm divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-3 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                                 📍 Local
                             </th>
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-3 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                                 📄 Contratação
                             </th>
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-3 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                                 👤 Funcionário
                             </th>
-                            <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-3 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
                                 💼 Função
                             </th>
-                            <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-3 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">
                                 💰 Salário Líquido
                             </th>
-                            <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-3 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">
                                 💵 Salário Base
                             </th>
-                            <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-3 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">
                                 💳 Dia 20 Vale
                             </th>
-                            <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-3 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">
                                 📉 INSS
                             </th>
-                            <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-3 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">
                                 🎫 Vale Extra
                             </th>
                             <th
-                                class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider text-nowrap">
+                                class="px-3 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase text-nowrap">
                                 ❌ Faltas
                             </th>
-                            <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-3 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">
                                 ❌ DSR Faltas
                             </th>
-                            <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-3 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">
                                 🔄 Arred. Desc.
                             </th>
-                            <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-3 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">
                                 🔄 Arred. Prov.
                             </th>
-                            <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-3 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">
                                 🎁 Gratificação
                             </th>
-                            <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-3 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">
                                 ⏰ DSR Hora Extra
                             </th>
-                            <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-3 py-3 text-xs font-medium tracking-wider text-right text-gray-500 uppercase">
                                 👪 Sal. Família + HR Extra
                             </th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-3 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">
                                 📅 5º Dia Útil
                             </th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-3 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">
                                 📌 Status
                             </th>
-                            <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th class="px-3 py-3 text-xs font-medium tracking-wider text-center text-gray-500 uppercase">
                                 ⚙️ Ações
                             </th>
                         </tr>
@@ -162,7 +162,7 @@
 
                                 {{-- Contratação --}}
                                 <td class="px-3 py-3 whitespace-nowrap">
-                                    <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 uppercase">
+                                    <span class="px-2 py-1 text-xs text-gray-700 uppercase bg-gray-100 rounded-full">
                                         {{ $folha->funcionario->tipo_contratacao ?? 'CLT' }}
                                     </span>
                                 </td>
@@ -170,23 +170,23 @@
                                 {{-- Funcionário --}}
                                 <td class="px-3 py-3 whitespace-nowrap">
                                     <a href="{{ route('rh.folha-pagamento.show', $folha->id) }}"
-                                        class="text-indigo-600 hover:text-indigo-900 font-medium">
+                                        class="font-medium text-indigo-600 hover:text-indigo-900">
                                         {{ $folha->funcionario->nome_completo }}
                                     </a>
                                 </td>
 
                                 {{-- Função --}}
-                                <td class="px-3 py-3 whitespace-nowrap text-xs text-gray-500">
+                                <td class="px-3 py-3 text-xs text-gray-500 whitespace-nowrap">
                                     {{ $folha->funcionario->cargo?->titulo ?? '-' }}
                                 </td>
 
                                 {{-- Salário Líquido --}}
-                                <td class="px-3 py-3 whitespace-nowrap text-right font-bold text-blue-700">
+                                <td class="px-3 py-3 font-bold text-right text-blue-700 whitespace-nowrap">
                                     R$ {{ number_format($salarioLiquido, 2, ',', '.') }}
                                 </td>
 
                                 {{-- Salário Base --}}
-                                <td class="px-3 py-3 whitespace-nowrap text-right">
+                                <td class="px-3 py-3 text-right whitespace-nowrap">
                                     R$ {{ number_format($salarioBase, 2, ',', '.') }}
                                 </td>
 
@@ -197,7 +197,7 @@
                                 </td>
 
                                 {{-- INSS --}}
-                                <td class="px-3 py-3 whitespace-nowrap text-right text-red-600">
+                                <td class="px-3 py-3 text-right text-red-600 whitespace-nowrap">
                                     R$ {{ number_format($inss, 2, ',', '.') }}
                                 </td>
 
@@ -250,14 +250,14 @@
                                 </td>
 
                                 {{-- 5º Dia Útil --}}
-                                <td class="px-3 py-3 whitespace-nowrap text-center">
-                                    <span class="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded-full">
+                                <td class="px-3 py-3 text-center whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs text-blue-700 rounded-full bg-blue-50">
                                         {{ $folha->quinto_dia_util ? \Carbon\Carbon::parse($folha->quinto_dia_util)->format('d/m') : '-' }}
                                     </span>
                                 </td>
 
                                 {{-- Status --}}
-                                <td class="px-3 py-3 whitespace-nowrap text-center">
+                                <td class="px-3 py-3 text-center whitespace-nowrap">
                                     <span
                                         class="px-2 py-1 text-xs rounded-full {{ $folha->status === 'aberta' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800' }}">
                                         {{ ucfirst($folha->status) }}
@@ -265,7 +265,7 @@
                                 </td>
 
                                 {{-- Ações --}}
-                                <td class="px-3 py-3 whitespace-nowrap text-center">
+                                <td class="px-3 py-3 text-center whitespace-nowrap">
                                     <div class="flex items-center justify-center gap-2">
                                         <a href="{{ route('rh.folha-pagamento.show', $folha->id) }}"
                                             class="text-blue-600 hover:text-blue-900" title="Visualizar">
@@ -280,16 +280,18 @@
                                             📄
                                         </a>
                                         <!-- perguntar se quer excluir -->
-
-                                        <form action="{{ route('rh.folha-pagamento.destroy', $folha->id) }}" method="POST"
-                                            class="text-red-600 hover:text-red-900">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" title="Excluir" class="text-red-600 hover:text-red-900"
-                                                onclick="return confirm('Confirma a exclusão desta folha?')">
-                                                🗑
+                                        <div>
+                                            {{-- ✅ Botão que PASSA os dados para o modal --}}
+                                            <button x-data
+                                                @click="$dispatch('open-delete-modal', {
+                                                    id: {{ $folha->id }},
+                                                    nome: '{{ $folha->funcionario->nome_completo }}',
+                                                    competencia: '{{ \Carbon\Carbon::parse($folha->competencia)->format('m/Y') }}'
+                                                })"
+                                                class="text-sm font-medium text-red-500 hover:text-red-700">
+                                                🗑️ Excluir
                                             </button>
-                                        </form>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
@@ -297,15 +299,15 @@
                             <tr>
                                 <td colspan="19" class="px-6 py-12 text-center text-gray-500">
                                     <div class="flex flex-col items-center">
-                                        <svg class="h-12 w-12 text-gray-300 mb-4" fill="none" stroke="currentColor"
+                                        <svg class="w-12 h-12 mb-4 text-gray-300" fill="none" stroke="currentColor"
                                             viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                                                 d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                         </svg>
                                         <p class="text-lg font-medium">Nenhuma folha encontrada</p>
-                                        <p class="text-sm mt-1">Crie uma nova folha para esta competência</p>
+                                        <p class="mt-1 text-sm">Crie uma nova folha para esta competência</p>
                                         <a href="{{ route('rh.folha-pagamento.create') }}"
-                                            class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm">
+                                            class="px-4 py-2 mt-4 text-sm text-white bg-indigo-600 rounded-md hover:bg-indigo-700">
                                             + Nova Folha
                                         </a>
                                     </div>
@@ -316,7 +318,7 @@
 
                     {{-- Rodapé com Totais --}}
                     @if ($folhas->count() > 0)
-                        <tfoot class="bg-gray-100 font-bold text-sm">
+                        <tfoot class="text-sm font-bold bg-gray-100">
                             <tr>
                                 <td colspan="4" class="px-3 py-3 text-right text-gray-700">
                                     TOTAL ({{ $totais->total_funcionarios ?? 0 }} funcionários)
@@ -366,6 +368,8 @@
                         </tfoot>
                     @endif
                 </table>
+                {{-- ✅ Modal ÚNICO (fora do loop) --}}
+                @include('rh.folha-pagamento.partials.delete-folha-form')
             </div>
 
             {{-- Paginação --}}

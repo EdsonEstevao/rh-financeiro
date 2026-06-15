@@ -32,16 +32,22 @@
                     <div class="flex items-stretch">
 
                         {{-- Logo --}}
-                        <div class="flex items-center pr-6 border-r border-gray-100 shrink-0">
+                        {{-- <div class="flex items-center pr-6 border-r border-gray-100 shrink-0">
                             <a href="{{ route('dashboard') }}"
                                 class="flex items-center gap-2 text-lg font-bold text-indigo-600 transition-colors hover:text-indigo-700">
-                                {{-- Ícone SVG --}}
+                                <!-- Ícone SVG -->
                                 <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
                                 </svg>
                                 <span class="hidden sm:block">RH & Financeiro</span>
+                            </a>
+                        </div> --}}
+                        <div class="flex shrink-0 items-center pr-6 border-r border-gray-100">
+                            <a href="{{ route('dashboard') }}" class="flex items-center gap-3">
+                                <img src="{{ asset('images/logo2.png') }}" alt="{{ config('app.name', 'Construfor') }}"
+                                    class="h-10 w-auto shrink-0 rounded-md">
                             </a>
                         </div>
 
@@ -208,8 +214,7 @@
                                                 <a href="{{ route('rh.cargos.index') }}"
                                                     class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors
                                                     {{ request()->routeIs('rh.cargos.*') ? 'bg-indigo-50 text-indigo-700 font-medium' : '' }}">
-                                                    <svg class="w-4 h-4 text-gray-400" viewBox="0 0 20 20"
-                                                        fill="currentColor">
+                                                    <svg class="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                                                         <path fill-rule="evenodd"
                                                             d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z"
                                                             clip-rule="evenodd" />

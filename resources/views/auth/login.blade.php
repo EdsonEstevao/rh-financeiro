@@ -105,7 +105,7 @@
 
         {{-- Botão de Login --}}
         <button type="submit"
-            class="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all duration-200 text-sm tracking-wide">
+            class="w-full py-3 px-4 bg-gradient-to-r from-[#083b6b] to-[#0d59a0] text-white font-semibold rounded-xl shadow-lg hover:shadow-xl hover:from-[#083f72] hover:to-[#1068b9] focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all duration-200 text-sm tracking-wide">
             <span class="flex items-center justify-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

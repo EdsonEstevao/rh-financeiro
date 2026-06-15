@@ -36,7 +36,9 @@
             </a>
             <a href="{{ route('dashboard') }}"
                 class="px-6 py-3 font-medium text-white transition-colors bg-indigo-600 shadow-lg rounded-xl hover:bg-indigo-700 shadow-indigo-200">
-                Ir para Dashboard
+
+                <img src="{{ asset('images/logo2.png') }}" alt="Construfor"
+                    class="h-12 w-auto mx-auto rounded-xl shadow-md">
             </a>
         </div>
 

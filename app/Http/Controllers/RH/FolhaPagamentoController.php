@@ -122,7 +122,7 @@ class FolhaPagamentoController extends Controller
 
 
         $competencia = $request->input('competencia', now()->format('Y-m'));
-        $status = $request->input('status', '');
+        $status = $request->status ?? '';
 
         [$ano, $mes] = explode('-', $competencia);
 
@@ -138,7 +138,7 @@ class FolhaPagamentoController extends Controller
         $folhas = $query->orderBy('created_at', 'desc')->paginate(20);
 
         // Totais - calculados a partir dos lançamentos
-        $totais = $this->calcularTotais($ano, $mes, $status);
+        $totais = $this->calcularTotais((int) $ano, (int) $mes, $status);
 
         return view('rh.folha-pagamento.index', compact(
             'folhas', 'totais', 'competencia', 'status'
@@ -148,16 +148,22 @@ class FolhaPagamentoController extends Controller
     /**
      * Calcula os totais do rodapé baseado nos lançamentos
      */
-    private function calcularTotais(int $ano, int $mes, string $status): object
+    private function calcularTotais(int $ano, int $mes, string $status = ''): object
     {
+
         // Busca todas as folhas do período
         $query = FolhaPagamento::whereYear('competencia', $ano)
             ->whereMonth('competencia', $mes);
 
+        // se status for vazio, busca todas as folhas; senão filtra por status
         if ($status !== '') {
+
             $query->where('status', $status);
         }
 
+
+
+        // Pega os IDs para buscar os lançamentos relacionados
         $folhasIds = $query->pluck('id');
 
         // Se não tem folhas, retorna zeros
@@ -185,64 +191,64 @@ class FolhaPagamentoController extends Controller
         // Busca os lançamentos de todas as folhas do período
         $lancamentos = FolhaLancamento::whereIn('folha_pagamento_id', $folhasIds)->get();
 
-    // Função helper para somar por tipo
-    $somar = function(string $tipo, string $categoria = null) use ($lancamentos) {
-        $query = $lancamentos->where('tipo', $tipo);
-        if ($categoria) {
-            $query = $query->where('categoria', $categoria);
-        }
-        return $query->sum('valor_total');
-    };
+        // Função helper para somar por tipo
+        $somar = function(string $tipo, ?string $categoria = null) use ($lancamentos) {
+            $query = $lancamentos->where('tipo', $tipo);
+            if ($categoria) {
+                $query = $query->where('categoria', $categoria);
+            }
+            return $query->sum('valor_total');
+        };
 
-    // Totais por tipo de lançamento
-    $totalSalarioBase = $somar('salario_base', 'provento');
-    $totalGratificacao = $somar('gratificacao', 'provento');
-    $totalSalFamilia = $somar('salario_familia', 'provento');
-    $totalHoraExtraNormal = $somar('hora_extra_normal', 'provento');
-    $totalHoraExtraSabado = $somar('hora_extra_sabado', 'provento');
-    $totalHoraExtraFeriado = $somar('hora_extra_feriado', 'provento');
-    $totalHorasExtras = $totalHoraExtraNormal + $totalHoraExtraSabado + $totalHoraExtraFeriado;
-    $totalDsrHoraExtra = $somar('dsr_hora_extra', 'provento');
-    $totalArredProvento = $somar('arredondamento', 'provento');
+        // Totais por tipo de lançamento
+        $totalSalarioBase = $somar('salario_base', 'provento');
+        $totalGratificacao = $somar('gratificacao', 'provento');
+        $totalSalFamilia = $somar('salario_familia', 'provento');
+        $totalHoraExtraNormal = $somar('hora_extra_normal', 'provento');
+        $totalHoraExtraSabado = $somar('hora_extra_sabado', 'provento');
+        $totalHoraExtraFeriado = $somar('hora_extra_feriado', 'provento');
+        $totalHorasExtras = $totalHoraExtraNormal + $totalHoraExtraSabado + $totalHoraExtraFeriado;
+        $totalDsrHoraExtra = $somar('dsr_hora_extra', 'provento');
+        $totalArredProvento = $somar('arredondamento', 'provento');
 
-    $totalInss = $somar('inss', 'desconto');
-    $totalValeDia20 = $somar('vale_dia_20', 'desconto');
-    $totalValeExtra = $somar('vale_extra', 'desconto');
-    $totalFaltas = $somar('falta', 'desconto');
-    $totalDsrFaltas = $somar('dsr_falta', 'desconto');
-    $totalArredDesconto = $somar('arredondamento', 'desconto');
+        $totalInss = $somar('inss', 'desconto');
+        $totalValeDia20 = $somar('vale_dia_20', 'desconto');
+        $totalValeExtra = $somar('vale_extra', 'desconto');
+        $totalFaltas = $somar('falta', 'desconto');
+        $totalDsrFaltas = $somar('dsr_falta', 'desconto');
+        $totalArredDesconto = $somar('arredondamento', 'desconto');
 
-    // Totais consolidados
-    $totalProventos = $totalSalarioBase + $totalHorasExtras + $totalDsrHoraExtra +
-                      $totalGratificacao + $totalSalFamilia + $totalArredProvento;
-    $totalDescontos = $totalInss + $totalValeDia20 + $totalValeExtra +
-                      $totalFaltas + $totalDsrFaltas + $totalArredDesconto;
-    $totalLiquido = $totalProventos - $totalDescontos;
+        // Totais consolidados
+        $totalProventos = $totalSalarioBase + $totalHorasExtras + $totalDsrHoraExtra +
+                        $totalGratificacao + $totalSalFamilia + $totalArredProvento;
+        $totalDescontos = $totalInss + $totalValeDia20 + $totalValeExtra +
+                        $totalFaltas + $totalDsrFaltas + $totalArredDesconto;
+        $totalLiquido = $totalProventos - $totalDescontos;
 
-    // Quinto dia útil (pega do primeiro registro)
-    $quintoDiaUtil = FolhaPagamento::whereIn('id', $folhasIds)
-        ->max('quinto_dia_util');
+        // Quinto dia útil (pega do primeiro registro)
+        $quintoDiaUtil = FolhaPagamento::whereIn('id', $folhasIds)
+            ->max('quinto_dia_util');
 
-    return (object) [
-        'total_funcionarios' => $folhasIds->count(),
-        'quinto_dia_util' => $quintoDiaUtil,
-        'total_salario_base' => $totalSalarioBase,
-        'total_gratificacao' => $totalGratificacao,
-        'total_sal_familia_hr_extra' => $totalSalFamilia,
-        'total_arred_provento' => $totalArredProvento,
-        'total_desconto_inss' => $totalInss,
-        'total_vale_dia_20' => $totalValeDia20,
-        'total_vale_extra' => $totalValeExtra,
-        'total_faltas' => $totalFaltas,
-        'total_dsr_faltas' => $totalDsrFaltas,
-        'total_arred_desconto' => $totalArredDesconto,
-        'total_horas_extras' => $totalHorasExtras,
-        'total_dsr_hora_extra' => $totalDsrHoraExtra,
-        'total_proventos' => $totalProventos,
-        'total_descontos' => $totalDescontos,
-        'total_salario_liquido' => $totalLiquido,
-    ];
-}
+        return (object) [
+            'total_funcionarios' => $folhasIds->count(),
+            'quinto_dia_util' => $quintoDiaUtil,
+            'total_salario_base' => $totalSalarioBase,
+            'total_gratificacao' => $totalGratificacao,
+            'total_sal_familia_hr_extra' => $totalSalFamilia,
+            'total_arred_provento' => $totalArredProvento,
+            'total_desconto_inss' => $totalInss,
+            'total_vale_dia_20' => $totalValeDia20,
+            'total_vale_extra' => $totalValeExtra,
+            'total_faltas' => $totalFaltas,
+            'total_dsr_faltas' => $totalDsrFaltas,
+            'total_arred_desconto' => $totalArredDesconto,
+            'total_horas_extras' => $totalHorasExtras,
+            'total_dsr_hora_extra' => $totalDsrHoraExtra,
+            'total_proventos' => $totalProventos,
+            'total_descontos' => $totalDescontos,
+            'total_salario_liquido' => $totalLiquido,
+        ];
+    }
     public function index3(Request $request): View
     {
         // O input month vem como '2026-05'
@@ -887,10 +893,10 @@ class FolhaPagamentoController extends Controller
     // public function resumo(Request $request)
     // {
     //     $competencia = $request->get('competencia', now()->format('Y-m'));
-        
+
     //     // ✅ Carrega os lançamentos
     //     $folhas = FolhaPagamento::with([
-    //             'funcionario.departamento', 
+    //             'funcionario.departamento',
     //             'funcionario.cargo',
     //             'lancamentos' // ✅ ESSENCIAL
     //         ])
@@ -901,14 +907,14 @@ class FolhaPagamentoController extends Controller
     //         $funcionarios = Funcionario::ativos()
     //             ->with(['departamento', 'cargo', 'contrato'])
     //             ->get();
-            
+
     //         $resumo = [
     //             'total_funcionarios' => $funcionarios->count(),
     //             'folha_bruta' => 0,
     //             'total_descontos' => 0,
     //             'folha_liquida' => 0,
     //         ];
-            
+
     //         $funcionarios->each(function($f) {
     //             $f->salario_bruto = $f->contrato->salario_base ?? 0;
     //             $f->total_descontos = 0;
@@ -918,24 +924,24 @@ class FolhaPagamentoController extends Controller
     //         // ✅ Calcula a partir dos lançamentos
     //         $totalProventos = 0;
     //         $totalDescontos = 0;
-            
+
     //         foreach ($folhas as $folha) {
     //             $totalProventos += $folha->lancamentos
     //                 ->where('categoria', 'provento')
     //                 ->sum('valor_total');
-                
+
     //             $totalDescontos += $folha->lancamentos
     //                 ->where('categoria', 'desconto')
     //                 ->sum('valor_total');
     //         }
-            
+
     //         $resumo = [
     //             'total_funcionarios' => $folhas->unique('funcionario_id')->count(),
     //             'folha_bruta' => $totalProventos,
     //             'total_descontos' => $totalDescontos,
     //             'folha_liquida' => $totalProventos - $totalDescontos,
     //         ];
-            
+
     //         // Prepara funcionários
     //         $funcionarios = $folhas->map(function($folha) {
     //             $funcionario = $folha->funcionario;
@@ -955,9 +961,9 @@ class FolhaPagamentoController extends Controller
     public function resumo(Request $request)
     {
         $competencia = $request->get('competencia', now()->format('Y-m'));
-        
+
         $folhas = FolhaPagamento::with([
-                'funcionario.departamento', 
+                'funcionario.departamento',
                 'funcionario.cargo',
                 'lancamentos'
             ])
@@ -965,7 +971,7 @@ class FolhaPagamentoController extends Controller
             ->get();
 
         $funcionarios = collect();
-        
+
         if ($folhas->isEmpty()) {
             $resumo = [
                 'total_funcionarios' => 0,
@@ -976,16 +982,16 @@ class FolhaPagamentoController extends Controller
         } else {
             $totalProventos = 0;
             $totalDescontos = 0;
-            
+
             $funcionarios = collect();
-            
+
             foreach ($folhas as $folha) {
                 $proventos = (float) $folha->lancamentos->where('categoria', 'provento')->sum('valor_total');
                 $descontos = (float) $folha->lancamentos->where('categoria', 'desconto')->sum('valor_total');
-                
+
                 $totalProventos += $proventos;
                 $totalDescontos += $descontos;
-                
+
                 $funcionarios->push((object) [
                     'id' => $folha->funcionario->id,
                     'nome_completo' => $folha->funcionario->nome_completo,
@@ -996,7 +1002,7 @@ class FolhaPagamentoController extends Controller
                     'salario_liquido' => $proventos - $descontos,
                 ]);
             }
-            
+
             $resumo = [
                 'total_funcionarios' => $funcionarios->count(),
                 'folha_bruta' => $totalProventos,

@@ -203,7 +203,7 @@ class RhDashboardController extends Controller
 
     private function getDadosFolhaPagamento()
     {
-        return FolhaPagamento::with('holerite')
+        return FolhaPagamento::with('holerites')
                            ->select(
                                DB::raw('MONTH(competencia) as mes'),
                                DB::raw('YEAR(competencia) as ano'),
@@ -263,7 +263,7 @@ class RhDashboardController extends Controller
         for ($i = 11; $i >= 0; $i--) {
             $data = Carbon::now()->subMonths($i);
             $chave = $data->format('Y-m');
-            
+
             $resultado->push([
                 'periodo' => $data->format('M/Y'),
                 'admissoes' => $admissoes->get($chave)->count ?? 0,
@@ -344,20 +344,20 @@ class RhDashboardController extends Controller
     public function getChartData(Request $request)
     {
         $type = $request->get('type');
-        
+
         switch ($type) {
             case 'departamento-distribuicao':
                 return response()->json($this->getFuncionariosPorDepartamento());
-                
+
             case 'distribuicao-salarial':
                 return response()->json($this->getDistribuicaoSalarial());
-                
+
             case 'distribuicao-idade':
                 return response()->json($this->getFuncionariosPorIdade());
 
             case 'funcionarios-genero':
                 return response()->json($this->getFuncionariosPorGenero());
-                
+
             default:
                 return response()->json(['error' => 'Tipo de gráfico inválido'], 400);
         }
@@ -371,7 +371,7 @@ class RhDashboardController extends Controller
         // 📊 Cards principais
         $totalFuncionarios = Funcionario::count();
         $funcionariosAtivos = Funcionario::where('ativo', true)->count();
-        
+
         $feriasVencidas = Funcionario::where('ativo', true)
             ->where('ferias_vencidas', true)
             ->count();
@@ -567,7 +567,7 @@ class RhDashboardController extends Controller
         for ($i = 11; $i >= 0; $i--) {
             $data = Carbon::now()->subMonths($i);
             $chave = $data->format('Y-m');
-            
+
             $resultado->push([
                 'periodo' => $data->format('M/Y'),
                 'admissoes' => $admissoes->get($chave)->count ?? 0,
@@ -648,20 +648,20 @@ class RhDashboardController extends Controller
     public function getChartData2(Request $request)
     {
         $type = $request->type;
-        
+
         switch ($type) {
             case 'departamento-distribuicao':
                 return response()->json($this->getFuncionariosPorDepartamento());
-                
+
             case 'distribuicao-salarial':
                 return response()->json($this->getDistribuicaoSalarial());
-                
+
             case 'distribuicao-idade':
                 return response()->json($this->getFuncionariosPorIdade());
 
             case 'funcionarios-genero':
                 return response()->json($this->getFuncionariosPorGenero());
-                
+
             default:
                 return response()->json(['error' => 'Tipo de gráfico inválido'], 400);
         }

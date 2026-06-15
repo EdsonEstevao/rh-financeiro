@@ -18,3 +18,19 @@
 .table-hover tbody tr:hover {
     @apply bg-gray-50;
 }
+/* Efeito de sombra para dar destaque à logo */
+.logo-shadow {
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+    transition: all 0.3s ease;
+}
+
+.logo-shadow:hover {
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
+    transform: translateY(-1px);
+}
+
+/* Borda sutil para destacar do fundo */
+.logo-bordered {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+}

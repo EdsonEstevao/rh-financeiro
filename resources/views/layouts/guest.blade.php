@@ -101,10 +101,11 @@
     {{-- Padrão de fundo --}}
     <div class="pattern-dots"></div>
 
-    <div class="min-h-screen flex flex-col items-center justify-center px-4 py-9 relative z-10">
+    <div class="min-h-screen flex flex-col items-center justify-center px-4 py-9 relative z-10"
+        style="background: url({{ asset('images/logo2.png') }}); background-size: cover;">
 
         {{-- Logo e Nome do Sistema --}}
-        <div class="mb-4 text-center">
+        {{-- <div class="mb-4 text-center">
             <a href="#" class="inline-block logo-pulse">
                 <div
                     class="w-24 h-24 mx-auto bg-white/10 backdrop-blur-sm rounded-2xl shadow-2xl flex items-center justify-center mb-5 border border-white/20">
@@ -117,14 +118,22 @@
             </a>
             <h1 class="text-3xl font-bold text-white tracking-tight">{{ config('app.name', 'RH & Financeiro') }}</h1>
             <p class="text-indigo-200 text-sm mt-2 font-medium">Sistema de Gestão Empresarial</p>
+        </div> --}}
+        {{-- Logo na tela de login --}}
+        <div class="mb-10 text-center">
+            <div class="inline-block rounded-2xl overflow-hidden shadow-2xl w-96 h-24 bg-gradient-to-r from-[#083b6b] via-[#0d59a0] to-[#083b6b] animate-gradientShift"
+                style="background: url({{ asset('images/logo2.png') }}); background-size: cover; background-position: center; height: 130px;">
+
+                {{-- <img src="{{ asset('images/logo2.png') }}" alt="{{ config('app.name', 'Construfor') }}"
+                    class="h-20 w-auto"> --}}
+            </div>
         </div>
 
         {{-- Card de Login --}}
         <div class="w-full max-w-md glass-card rounded-2xl shadow-2xl overflow-hidden">
 
             {{-- Header do Card --}}
-            <div
-                class="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 px-6 py-4 relative overflow-hidden">
+            <div class="bg-gradient-to-r from-[#083b6b] via-[#0d59a0] to-[#083b6b] px-6 py-4 relative overflow-hidden">
                 <div class="absolute inset-0 bg-white/5"></div>
                 <div class="relative flex items-center justify-center gap-2">
                     <svg class="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">

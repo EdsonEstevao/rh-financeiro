@@ -56,6 +56,13 @@
 
 <body class="font-sans antialiased error-bg">
     <div class="flex items-center justify-center min-h-screen px-4 py-12">
+        {{-- Logo no topo das páginas de erro --}}
+        {{-- <div class="text-center mb-8">
+            <a href="{{ route('dashboard') }}">
+                <img src="{{ asset('images/logo2.png') }}" alt="Construfor"
+                    class="h-12 w-auto mx-auto rounded-xl shadow-md">
+            </a>
+        </div> --}}
         {{-- {{ $slot }} --}}
         @yield('content')
     </div>

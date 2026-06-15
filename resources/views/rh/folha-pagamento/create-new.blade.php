@@ -96,7 +96,8 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">📅 Competência</label>
                                 <input type="month" name="competencia" x-model="competencia" @change="calcularDiasUteis()"
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    placeholder="2026-05">
                             </div>
                             {{-- Após selecionar funcionário e competência --}}
                             <div x-show="folhaExistente" x-transition

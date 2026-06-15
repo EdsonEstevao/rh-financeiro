@@ -5,12 +5,22 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
         <div class="mb-6 flex items-center justify-between">
-            <div>
+            {{-- <div>
                 <h1 class="text-2xl font-bold text-gray-900">📅 Dashboard de Férias</h1>
                 <p class="mt-1 text-sm text-gray-500">
                     Visão geral do controle de férias •
                     <span class="font-medium">{{ now()->format('d/m/Y') }}</span>
                 </p>
+            </div> --}}
+            <div class="flex items-center gap-4">
+                <img src="{{ asset('images/logo2.png') }}" alt="Construfor" class="h-12 w-auto rounded-lg shadow-sm">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">📅 Dashboard de Férias</h1>
+                    <p class="mt-1 text-sm text-gray-500">
+                        Visão geral do controle de férias •
+                        <span class="font-medium">{{ now()->format('d/m/Y') }}</span>
+                    </p>
+                </div>
             </div>
             <div class="flex gap-2">
                 <a href="{{ route('rh.funcionarios.index') }}"

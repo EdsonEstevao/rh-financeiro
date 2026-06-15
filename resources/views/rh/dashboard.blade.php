@@ -6,11 +6,20 @@
 
         {{-- Header --}}
         <div class="flex items-center justify-between mb-6">
-            <div>
+            {{-- <div>
                 <h1 class="text-2xl font-bold text-gray-900">📊 Dashboard RH</h1>
                 <p class="mt-1 text-sm text-gray-500">
                     Visão geral • <span class="font-medium">{{ now()->format('d/m/Y') }}</span>
                 </p>
+            </div> --}}
+            <div class="flex items-center gap-4">
+                <img src="{{ asset('images/logo2.png') }}" alt="Construfor" class="h-14 w-auto rounded-lg shadow-sm">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">📊 Dashboard RH</h1>
+                    <p class="mt-1 text-sm text-gray-500">
+                        Visão geral • <span class="font-medium">{{ now()->format('d/m/Y') }}</span>
+                    </p>
+                </div>
             </div>
             <div class="flex gap-2">
                 <a href="{{ route('rh.funcionarios.index') }}"

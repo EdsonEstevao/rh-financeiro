@@ -5,11 +5,23 @@
     <div class="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
 
         {{-- Header --}}
-        <div class="mb-8">
+        {{-- <div class="mb-8">
             <h1 class="text-2xl font-bold text-gray-900">👋 Olá, {{ auth()->user()->name }}!</h1>
             <p class="mt-1 text-sm text-gray-500">
                 Bem-vindo ao sistema • <span class="font-medium">{{ now()->translatedFormat('l, d \d\e F \d\e Y') }}</span>
             </p>
+        </div> --}}
+        {{-- Header com logo --}}
+        <div class="mb-8 flex items-center gap-4">
+            <img src="{{ asset('images/logo2.png') }}" alt="{{ config('app.name', 'Construfor') }}"
+                class="h-16 w-auto rounded-xl shadow-md">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">👋 Olá, {{ auth()->user()->name }}!</h1>
+                <p class="mt-1 text-sm text-gray-500">
+                    Bem-vindo ao sistema • <span
+                        class="font-medium">{{ now()->translatedFormat('l, d \d\e F \d\e Y') }}</span>
+                </p>
+            </div>
         </div>
 
         {{-- Cards de Resumo Geral --}}
@@ -82,7 +94,7 @@
                     </div>
                     <div class="flex items-center gap-2 mt-3">
                         <span
-                            class="px-2 py-0.5 text-xs rounded-full 
+                            class="px-2 py-0.5 text-xs rounded-full
                         {{ $folhaMesCount > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500' }}">
                             {{ $folhaMesCount > 0 ? 'Gerada' : 'Pendente' }}
                         </span>
@@ -117,8 +129,8 @@
             {{-- Substitua o card "Alertas de Férias" por este --}}
             <a href="{{ route('rh.ferias.index') }}#ferias-direito" class="block group">
                 <div
-                    class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all group-hover:border-amber-200 
-        {{ $feriasDireito->where('status_alerta', 'disponivel')->count() > 0 ? 'border-l-4 border-l-amber-400' : '' }}">
+                    class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all group-hover:border-amber-200
+                        {{ $feriasDireito->where('status_alerta', 'disponivel')->count() > 0 ? 'border-l-4 border-l-amber-400' : '' }}">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium text-gray-500">Direito a Férias</p>
@@ -193,6 +205,7 @@
                                     $statusAlertColors = [
                                         'urgente' => 'bg-red-50/30',
                                         'disponivel' => 'bg-green-50/30',
+                                        'atencao' => 'bg-amber-50/30',
                                     ];
                                 @endphp
 

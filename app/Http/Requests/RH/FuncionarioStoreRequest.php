@@ -35,7 +35,7 @@ class FuncionarioStoreRequest extends FormRequest
             // Contato
             'telefone' => ['required', 'string', 'max:15'],
             'celular' => ['required', 'string', 'max:15'],
-            'email' => ['required', 'email', Rule::unique('funcionario_contatos', 'email')],
+            'email' => ['nullable', 'email', Rule::unique('funcionario_contatos', 'email')],
             'email_pessoal' => ['nullable', 'email'],
 
             // Endereço
@@ -51,7 +51,7 @@ class FuncionarioStoreRequest extends FormRequest
             'ctps_numero' => ['required', 'string', 'max:20'],
             'ctps_serie' => ['required', 'string', 'max:10'],
             'ctps_uf' => ['required', 'string', 'size:2'],
-            'ctps_data_emissao' => ['required', 'date', 'before_or_equal:today'],
+            'ctps_data_emissao' => ['nullable', 'date', 'before_or_equal:today'],
             'pis_pasep' => ['required', 'string', 'max:15'],
             'titulo_eleitor' => ['nullable', 'string', 'max:15'],
             'certificado_reservista' => ['nullable', 'string', 'max:20'],
@@ -60,9 +60,9 @@ class FuncionarioStoreRequest extends FormRequest
             'data_admissao' => ['required', 'date', 'before_or_equal:today'],
             'tipo_contratacao' => ['required', Rule::in(['clt', 'pj', 'autonomo', 'avulso', 'estatutario'])],
             'tipo_contrato' => ['required', Rule::in(['indeterminado', 'determinado', 'experiencia', 'intermitente', 'temporario', 'aprendiz', 'estagio'])],
-            
+
             'local_trabalho' => ['nullable', 'string', 'max:255'],
-            
+
             // Remuneração
             'tipo_remuneracao' => ['required', Rule::in(['mensal', 'diaria', 'horaria'])],
             'salario_base' => ['nullable', 'numeric', 'min:0', 'required_if:tipo_remuneracao,mensal'],
@@ -76,7 +76,7 @@ class FuncionarioStoreRequest extends FormRequest
             'horario_saida' => ['required', 'date_format:H:i'],
             'horario_almoco_inicio' => ['required', 'date_format:H:i'],
             'horario_almoco_fim' => ['required', 'date_format:H:i'],
-            
+
             // Benefícios
             'vale_transporte' => ['sometimes', 'boolean'],
             'valor_vale_transporte' => ['nullable', 'numeric', 'min:0'],

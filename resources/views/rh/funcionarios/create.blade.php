@@ -106,7 +106,8 @@
 
                         {{-- Data de Nascimento --}}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Data de Nascimento</label>
+                            <label class="block text-sm font-medium text-gray-700">Data de Nascimento <span
+                                    class="text-red-500">*</span></label>
                             <input type="date" name="data_nascimento" value="{{ old('data_nascimento') }}"
                                 class="block w-full mt-1 text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
                             @error('data_nascimento')
@@ -238,15 +239,11 @@
                     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Telefone</label>
-                            <input type="text" name="telefone" value="{{ old('telefone') }}"
-                                placeholder="(69) 3000-0000"
-                                class="block w-full mt-1 text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+                            <x-input-telefone name="telefone" />
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Celular</label>
-                            <input type="text" name="celular" value="{{ old('celular') }}"
-                                placeholder="(69) 9 9000-0000"
-                                class="block w-full mt-1 text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+                            <x-input-celular name="celular" required />
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">E-mail Corporativo</label>
@@ -277,10 +274,11 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">CPF <span
                                         class="text-red-500">*</span></label>
-                                <input type="text" name="cpf" value="{{ old('cpf') }}"
+                                <x-input-cpf name="cpf" required />
+                                {{-- <input type="text" name="cpf" value="{{ old('cpf') }}"
                                     placeholder="000.000.000-00"
                                     class="block w-full mt-1 text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    required />
+                                    required /> --}}
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">RG</label>
@@ -712,33 +710,39 @@
                     <h2 class="pb-3 text-base font-semibold text-gray-900 border-b border-gray-100">Dados Bancários</h2>
                     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Código do Banco</label>
+                            <label class="block text-sm font-medium text-gray-700">Código do Banco<span
+                                    class="text-red-500">*</span></label>
                             <input type="text" name="banco_codigo" value="{{ old('banco_codigo') }}"
                                 placeholder="001"
                                 class="block w-full mt-1 text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
                         </div>
                         <div class="lg:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700">Nome do Banco</label>
+                            <label class="block text-sm font-medium text-gray-700">Nome do Banco<span
+                                    class="text-red-500">*</span></label>
                             <input type="text" name="banco_nome" value="{{ old('banco_nome') }}"
                                 placeholder="Banco do Brasil"
                                 class="block w-full mt-1 text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Agência</label>
+                            <label class="block text-sm font-medium text-gray-700">Agência<span
+                                    class="text-red-500">*</span></label>
                             <input type="text" name="agencia" value="{{ old('agencia') }}" placeholder="0000-0"
                                 class="block w-full mt-1 text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Conta</label>
+                            <label class="block text-sm font-medium text-gray-700">Conta<span
+                                    class="text-red-500">*</span></label>
                             <input type="text" name="conta" value="{{ old('conta') }}" placeholder="00000-0"
                                 class="block w-full mt-1 text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Tipo de Conta</label>
+                            <label class="block text-sm font-medium text-gray-700">Tipo de Conta<span
+                                    class="text-red-500">*</span></label>
                             <select name="tipo_conta"
                                 class="block w-full mt-1 text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 <option value="">Selecione...</option>
                                 <option value="corrente" @selected(old('tipo_conta') === 'corrente')>Corrente</option>
+                                <option value="salario" @selected(old('tipo_conta') === 'salario')>Salário</option>
                                 <option value="poupanca" @selected(old('tipo_conta') === 'poupanca')>Poupança</option>
                             </select>
                         </div>
@@ -818,7 +822,7 @@
             {{-- ============================================================ --}}
             {{-- BARRA DE AÇÕES --}}
             {{-- ============================================================ --}}
-            <div
+            {{-- <div
                 class="flex items-center justify-between gap-3 px-6 py-4 mt-6 bg-white rounded-lg shadow ring-1 ring-black/5">
                 <a href="{{ route('rh.funcionarios.index') }}"
                     class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
@@ -828,6 +832,27 @@
                     class="inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-md shadow-sm hover:bg-indigo-500">
                     💾 Cadastrar Funcionário
                 </button>
+            </div> --}}
+            <div
+                class="flex items-center justify-between gap-3 px-6 py-4 mt-6 bg-white rounded-lg shadow ring-1 ring-black/5">
+                <a href="{{ route('rh.funcionarios.index') }}"
+                    class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    Cancelar
+                </a>
+
+                <div class="flex items-center gap-3">
+                    {{-- ✅ Botão Salvar e Continuar --}}
+                    <button type="submit" name="action" value="continue"
+                        class="inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold text-indigo-700 bg-indigo-50 rounded-md border border-indigo-200 hover:bg-indigo-100 shadow-sm">
+                        💾 Salvar e Continuar
+                    </button>
+
+                    {{-- Botão Salvar e Sair --}}
+                    <button type="submit" name="action" value="save"
+                        class="inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-md shadow-sm hover:bg-indigo-500">
+                        💾 Cadastrar Funcionário
+                    </button>
+                </div>
             </div>
         </form>
     </div>

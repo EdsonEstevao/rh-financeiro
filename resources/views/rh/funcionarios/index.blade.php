@@ -43,6 +43,17 @@
                                 @endforeach
                             </select>
                         </div>
+                        {{-- Filtro de Status --}}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Status</label>
+                            <select name="status" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm">
+                                <option value="">Todos os status</option>
+                                <option value="ativo" {{ request('status') === 'ativo' ? 'selected' : '' }}>🟢 Ativos
+                                </option>
+                                <option value="inativo" {{ request('status') === 'inativo' ? 'selected' : '' }}>🔴 Inativos
+                                </option>
+                            </select>
+                        </div>
 
                         <div class="flex items-end space-x-2">
                             <button type="submit"
@@ -54,6 +65,8 @@
                                 Limpar
                             </a>
                         </div>
+
+
                     </form>
                 </div>
             </div>

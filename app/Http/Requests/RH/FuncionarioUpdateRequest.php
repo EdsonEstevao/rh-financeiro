@@ -47,7 +47,7 @@ class FuncionarioUpdateRequest extends FormRequest
             // Contato
             'telefone' => ['required', 'string', 'max:15'],
             'celular' => ['required', 'string', 'max:15'],
-            'email' => ['required', 'email',
+            'email' => ['nullable', 'email',
             Rule::unique('funcionario_contatos', 'email')->ignore($contatoId ?? null)],
             'email_pessoal' => ['nullable', 'email'],
 
@@ -75,16 +75,16 @@ class FuncionarioUpdateRequest extends FormRequest
             'data_admissao' => ['required', 'date', 'before_or_equal:today'],
             'tipo_contratacao' => ['required', Rule::in(['clt', 'pj', 'autonomo', 'avulso', 'estatutario'])],
             'tipo_contrato' => ['required', Rule::in(['indeterminado', 'determinado', 'experiencia', 'intermitente', 'temporario', 'aprendiz', 'estagio'])],
-            
+
             'local_trabalho' => ['nullable', 'string', 'max:255'],
-            
+
             // Remuneração
             'tipo_remuneracao' => ['required', Rule::in(['mensal', 'diaria', 'horaria'])],
             'salario_base' => ['nullable', 'numeric', 'min:0', 'required_if:tipo_remuneracao,mensal'],
             'valor_diaria' => ['nullable', 'numeric', 'min:0', 'required_if:tipo_remuneracao,diaria'],
             'valor_hora'   => ['nullable', 'numeric', 'min:0', 'required_if:tipo_remuneracao,horaria'],
             'eh_diarista' => ['sometimes', 'boolean'],
-            
+
             // Jornada de Trabalho/ Horários
             'carga_horaria_semanal' => ['required', 'integer', 'min:1', 'max:44'],
             'horario_entrada' => ['required', 'date_format:H:i'],

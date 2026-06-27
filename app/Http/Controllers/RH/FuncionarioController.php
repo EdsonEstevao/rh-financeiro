@@ -19,15 +19,16 @@ class FuncionarioController extends Controller
         private PeriodoFeriasService $periodoService
     ) {}
 
-    public function index(Request $request)
+    public function indexOld(Request $request)
     {
-
-
-        $funcionarios = Funcionario::query()
-            ->with(['departamento', 'cargo'])
+       $funcionarios = Funcionario::query()
+            ->with(['departamento', 'cargo', 'documentos']) // ✅ Carrega documentos
             ->when($request->filled('search'), function ($query) use ($request) {
                 $query->where('nome_completo', 'like', "%{$request->search}%")
-                      ->orWhere('cpf', 'like', "%{$request->search}%");
+                    // ✅ Busca CPF na tabela funcionario_documentos
+                    ->orWhereHas('documentos', function ($q) use ($request) {
+                        $q->where('cpf', 'like', "%{$request->search}%");
+                    });
             })
             ->when($request->filled('departamento_id'), function ($query) use ($request) {
                 $query->where('departamento_id', $request->departamento_id);
@@ -48,16 +49,44 @@ class FuncionarioController extends Controller
         $departamentos = Departamento::query()->where('ativo', true)->orderBy('nome', 'desc')->get();
         $cargos = Cargo::query()->where('ativo', true)->orderBy('titulo')->get();
 
+        return view('rh.funcionarios.index', compact('funcionarios', 'departamentos', 'cargos'));
+    }
 
-        // No controller ou direto na view
-        // $alertasFerias = [
-        //     'vencendo_30_dias' => Funcionario::feriasVencendo(30)->count('id'),
-        //     'vencidas' => Funcionario::feriasVencidas()->count('id'),
-        //     'total_funcionarios' => Funcionario::ativos()->count('id')
-        // ];
+    public function index(Request $request)
+    {
+        $funcionarios = Funcionario::query()
+            ->with(['departamento', 'cargo', 'documentos'])
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $query->where('nome_completo', 'like', "%{$request->search}%")
+                    ->orWhereHas('documentos', function ($q) use ($request) {
+                        $q->where('cpf', 'like', "%{$request->search}%");
+                    });
+            })
+            ->when($request->filled('departamento_id'), function ($query) use ($request) {
+                $query->where('departamento_id', $request->departamento_id);
+            })
+            ->when($request->filled('cargo_id'), function ($query) use ($request) {
+                $query->where('cargo_id', $request->cargo_id);
+            })
+            // ✅ Filtro de Status (Ativo/Inativo/Todos)
+            ->when($request->filled('status'), function ($query) use ($request) {
+                if ($request->status === 'ativo') {
+                    $query->where('ativo', true);
+                } elseif ($request->status === 'inativo') {
+                    $query->where('ativo', false);
+                }
+                // Se for 'todos', não aplica filtro
+            })
+            // ✅ Removeu o filtro 'apenas_ativos' antigo (substituído pelo status)
+            ->when($request->boolean('ferias_vencendo'), function ($query) {
+                $query->feriasVencendo(30);
+            })
+            ->orderBy('nome_completo')
+            ->paginate(20)
+            ->withQueryString();
 
-
-
+        $departamentos = Departamento::query()->where('ativo', true)->orderBy('nome', 'desc')->get();
+        $cargos = Cargo::query()->where('ativo', true)->orderBy('titulo')->get();
 
         return view('rh.funcionarios.index', compact('funcionarios', 'departamentos', 'cargos'));
     }
@@ -77,9 +106,24 @@ class FuncionarioController extends Controller
         try {
             $funcionario = $this->funcionarioService->criarFuncionario($request->validated());
 
+             // ✅ Se clicou em "Salvar e Continuar", redireciona para edição
+            $departamentos = Departamento::query()->where('ativo', true)->orderBy('nome')->get();
+            $cargos = Cargo::query()->where('ativo', true)->orderBy('titulo')->get();
+            if ($request->action === 'continue') {
+                return redirect()
+                    ->route('rh.funcionarios.create', compact('departamentos', 'cargos'))
+                    ->with('success', "Funcionário {$funcionario->nome_completo} cadastrado! Continue preenchendo os dados.");
+            }
+
+            // Padrão: redireciona para a listagem
             return redirect()
-                ->route('rh.funcionarios.show', $funcionario)
-                ->with('success', 'Funcionário cadastrado com sucesso! Período de férias calculado automaticamente.');
+                ->route('rh.funcionarios.index')
+                ->with('success', "Funcionário {$funcionario->nome_completo} cadastrado com sucesso!");
+
+            // return redirect()
+            //     ->route('rh.funcionarios.show', $funcionario)
+            //     ->with('success', 'Funcionário cadastrado com sucesso! Período de férias calculado automaticamente.');
+
         } catch (\Exception $e) {
             return back()
                 ->withInput()
@@ -91,12 +135,12 @@ class FuncionarioController extends Controller
     {
         // $id = $funcionario->id;
 
-        $funcionario->loadMissing(['cargo', 'departamento', 
-                                    'usuario', 'periodoFerias', 
-                                    'contrato', 'dependentes', 
-                                    'contatos', 'documentos', 
-                                    'endereco', 'dadosBancarios', 
-                                    'beneficios', 'folhasPagamento', 
+        $funcionario->loadMissing(['cargo', 'departamento',
+                                    'usuario', 'periodoFerias',
+                                    'contrato', 'dependentes',
+                                    'contatos', 'documentos',
+                                    'endereco', 'dadosBancarios',
+                                    'beneficios', 'folhasPagamento',
                                     'folhasPagamento.lancamentos']); //load(['departamento', 'cargo', 'usuario']);
         // $funcionario = Funcionario::with(['cargo', 'departamento', 'usuario', 'periodoFerias'])
         //                             ->findOrFail($id);
@@ -229,7 +273,7 @@ class FuncionarioController extends Controller
         // Inativa o funcionário
         $funcionario->update([
             'ativo' => false,
-            'observacoes' => trim(($funcionario->observacoes ?? '') . 
+            'observacoes' => trim(($funcionario->observacoes ?? '') .
                 "\nDemitido em {$dataDemissao->format('d/m/Y')}. Motivo: {$validated['motivo']}"),
         ]);
 

@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\Api\CalculoTributarioController;
 use App\Http\Controllers\Admin\{ActivityLogController, PermissionController, RoleController, UserController};
 use App\Http\Controllers\{DashboardController, ProfileController};
 use App\Http\Controllers\RH\{CargoController, DepartamentoController, FolhaPagamentoController, FuncionarioController, PeriodoFeriasController, RhDashboardController};
@@ -64,27 +65,6 @@ Route::middleware(['auth', 'verified'])
 
         // });
 
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Férias dos Funcionários (Nested Resource)
-        |--------------------------------------------------------------------------
-        */
-        // Route::resource('funcionarios.periodos-ferias', PeriodoFeriasController::class)
-        //     ->middleware(['auth'])
-        //     ->parameters(['funcionarios' => 'funcionario']);
-
-
-        // Férias
-        // Route::get('/ferias', [PeriodoFeriasController::class, 'index'])->name('ferias.index')->middleware('permission:ferias.view');
-        // Route::get('/ferias/dashboard', [PeriodoFeriasController::class, 'dashboard'])->name('ferias.dashboard');
-        // Route::get('/ferias/create', [PeriodoFeriasController::class, 'create'])->name('ferias.create');
-        // Route::get('/ferias/{periodo}/edit', [PeriodoFeriasController::class, 'edit'])->name('ferias.edit');
-        // Route::put('/ferias/{periodo}', [PeriodoFeriasController::class, 'update'])->name('ferias.update');
-        // Route::get('/ferias/{periodo}', [PeriodoFeriasController::class, 'show'])->name('ferias.show');
-        // Route::delete('/ferias/{periodo}', [PeriodoFeriasController::class, 'destroy'])->name('ferias.destroy');
-        // Route::post('/ferias/{funcionario}/gerar', [PeriodoFeriasController::class, 'gerarNovoPeriodo'])->name('ferias.gerar');
 
         // ============================================
         // MÓDULO FÉRIAS - ROTAS CORRIGIDAS
@@ -202,8 +182,16 @@ Route::middleware(['auth', 'verified'])
         Route::get('folha-pagamento-geral/pdf', [FolhaPagamentoController::class, 'pdfGeral'])->name('folha-pagamento.pdf.geral');
 
 
+        // ===================
+        // API de Cálculos Tributários (INSS / IRRF)
+        // ===================
+        Route::prefix('api')->name('api.')->group(function () {
+            Route::post('/calcular-inss', [CalculoTributarioController::class, 'calcularInss'])
+                ->name('calcular-inss');
 
-
+            Route::post('/calcular-irrf', [CalculoTributarioController::class, 'calcularIrrf'])
+                ->name('calcular-irrf');
+        });
 
     });
     // ============================================

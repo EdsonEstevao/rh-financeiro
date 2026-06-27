@@ -553,73 +553,109 @@
                         this.arredondamentoDesconto = 0;
                     }
                 },
-
                 // calcularInss(salario) {
                 //     let inss = 0;
-                //     let restante = salario;
 
+                //     // Tabela progressiva do INSS (tetos por faixa)
                 //     const faixas = [{
-                //             limite: 1412.00,
+                //             teto: 1621.00,
                 //             aliquota: 0.075
-                //         },
+                //         }, // Faixa 1: até R$ 1.621,00 → 7,5%
                 //         {
-                //             limite: 2666.68,
+                //             teto: 2902.84,
                 //             aliquota: 0.09
-                //         },
+                //         }, // Faixa 2: até R$ 2.902,84 → 9%
                 //         {
-                //             limite: 4000.03,
+                //             teto: 4190.83,
                 //             aliquota: 0.12
-                //         },
+                //         }, // Faixa 3: até R$ 4.190,83 → 12%
                 //         {
-                //             limite: 7786.02,
+                //             teto: 8157.41,
                 //             aliquota: 0.14
-                //         },
+                //         }, // Faixa 4: até R$ 8.157,41 → 14%
                 //     ];
 
+                //     let anterior = 0;
+
                 //     for (const faixa of faixas) {
-                //         const valor = Math.min(restante, faixa.limite);
-                //         inss += valor * faixa.aliquota;
-                //         restante -= valor;
-                //         if (restante <= 0) break;
+                //         if (salario > anterior) {
+                //             // Calcula apenas sobre a parcela que está dentro desta faixa
+                //             const baseCalculo = Math.min(salario, faixa.teto) - anterior;
+                //             inss += baseCalculo * faixa.aliquota;
+                //             anterior = faixa.teto;
+                //         }
+                //         if (salario <= faixa.teto) break; // não precisa processar faixas acima do salário
                 //     }
 
                 //     this.inss = Math.round(inss * 100) / 100;
                 // },
-                calcularInss(salario) {
-                    let inss = 0;
 
-                    // Tabela progressiva do INSS (tetos por faixa)
-                    const faixas = [{
-                            teto: 1621.00,
-                            aliquota: 0.075
-                        }, // Faixa 1: até R$ 1.621,00 → 7,5%
-                        {
-                            teto: 2902.84,
-                            aliquota: 0.09
-                        }, // Faixa 2: até R$ 2.902,84 → 9%
-                        {
-                            teto: 4190.83,
-                            aliquota: 0.12
-                        }, // Faixa 3: até R$ 4.190,83 → 12%
-                        {
-                            teto: 8157.41,
-                            aliquota: 0.14
-                        }, // Faixa 4: até R$ 8.157,41 → 14%
-                    ];
+                // async calcularInss(salario) {
+                //     if (!salario || salario <= 0) {
+                //         this.inss = 0;
+                //         return;
+                //     }
 
-                    let anterior = 0;
+                //     try {
+                //         const response = await fetch('/rh/api/calcular-inss', {
+                //             method: 'POST',
+                //             headers: {
+                //                 'Content-Type': 'application/json',
+                //                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                //             },
+                //             body: JSON.stringify({
+                //                 salario: salario,
+                //                 competencia: this.competencia,
+                //             }),
+                //         });
 
-                    for (const faixa of faixas) {
-                        if (salario > anterior) {
-                            // Calcula apenas sobre a parcela que está dentro desta faixa
-                            const baseCalculo = Math.min(salario, faixa.teto) - anterior;
-                            inss += baseCalculo * faixa.aliquota;
-                            anterior = faixa.teto;
-                        }
-                        if (salario <= faixa.teto) break; // não precisa processar faixas acima do salário
+                //         const data = await response.json();
+                //         this.inss = data.inss;
+                //         this.detalhamentoInss = data.detalhamento; // opcional: para exibir tabela
+                //     } catch (error) {
+                //         console.error('Erro ao calcular INSS:', error);
+                //         this.inss = 0;
+                //     }
+                // },
+
+                async calcularInss(salario) {
+                    if (!salario || salario <= 0) {
+                        this.inss = 0;
+                        return;
                     }
 
-                    this.inss = Math.round(inss * 100) / 100;
+                    try {
+                        const response = await fetch('{{ route('rh.api.calcular-inss') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                funcionario_id: this.funcionario.id,
+                                salario: salario,
+                                competencia: this.competencia,
+                            }),
+                        });
+
+                        const data = await response.json();
+
+                        console.log(data); // Adicione este log para depuração
+
+                        if (!data.success) {
+                            console.error(data.message);
+                            this.inss = 0;
+                            return;
+                        }
+
+                        this.inss = data.inss;
+                        this.detalhamentoInss = data.detalhamento;
+
+                    } catch (error) {
+                        console.error('Erro ao calcular INSS:', error);
+                        this.inss = 0;
+                    }
                 },
 
                 calcularSalarioFamilia(salario) {

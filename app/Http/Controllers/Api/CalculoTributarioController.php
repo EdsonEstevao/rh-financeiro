@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\{Auth, Log};
 use RuntimeException;
 use Throwable;
 
-use App\Http\Requests\Rh\Api\{CalcularInssRequest, CalcularIrrfRequest};
+use App\Http\Requests\RH\Api\{CalcularInssRequest, CalcularIrrfRequest};
 use App\Http\Controllers\Controller;
 use App\Models\Domain\RH\Funcionario;
 use App\Services\RH\CalculoTributarioService;

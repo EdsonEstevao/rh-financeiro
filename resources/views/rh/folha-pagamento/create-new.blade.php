@@ -642,6 +642,7 @@
                         const data = await response.json();
 
                         console.log(data); // Adicione este log para depuração
+                        console.log('Data received from INSS API:', data.message);
 
                         if (!data.success) {
                             console.error(data.message);

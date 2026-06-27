@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\RH\FaixaInssController;
+use App\Http\Controllers\RH\FaixaIrrfController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\CalculoTributarioController;
@@ -192,6 +194,26 @@ Route::middleware(['auth', 'verified'])
             Route::post('/calcular-irrf', [CalculoTributarioController::class, 'calcularIrrf'])
                 ->name('calcular-irrf');
         });
+
+        // ═══════════════════════════════════════════════════════════════
+        // TABELAS TRIBUTÁRIAS (INSS e IRRF)
+        // ═══════════════════════════════════════════════════════════════
+
+        // Tabela INSS
+        Route::middleware(['permission:faixa-inss.view|faixa-inss.create|faixa-inss.edit|faixa-inss.delete'])
+            ->group(function () {
+                Route::resource('faixa-inss', FaixaInssController::class)
+                    ->parameters(['faixa-inss' => 'tabelaInss'])
+                    ->except(['show']);
+            });
+
+        // Tabela IRRF
+        Route::middleware(['permission:faixa-irrf.view|faixa-irrf.create|faixa-irrf.edit|faixa-irrf.delete'])
+            ->group(function () {
+                Route::resource('faixa-irrf', FaixaIrrfController::class)
+                    ->parameters(['faixa-irrf' => 'tabelaIrrf'])
+                    ->except(['show']);
+            });
 
     });
     // ============================================

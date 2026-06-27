@@ -3,11 +3,10 @@
 namespace App\Services\RH;
 
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\{Auth, DB};
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-use App\Models\Domain\RH\{FolhaLancamento, FolhaPagamento, Funcionario, Holerite};
+use App\Models\Domain\RH\{FolhaPagamento, Funcionario, Holerite};
 
 class FolhaPagamentoService
 {
@@ -379,53 +378,106 @@ class FolhaPagamentoService
     /**
      * Gera holerite para um funcionário específico
      */
+    // public function gerarHoleriteFuncionarioOld(
+    //     FolhaPagamento $folha,
+    //     Funcionario $funcionario,
+    //     bool $recalcular = false
+    // ): ?Holerite {
+
+    //     // Verifica se já existe holerite
+    //     $holerite = $folha->holerites()
+    //         ->where('funcionario_id', $funcionario->id)
+    //         ->first();
+
+    //     if ($holerite && !$recalcular) {
+    //         return $holerite; // Já existe, não recalcula
+    //     }
+
+    //     // Calcula valores
+    //     $salarioBruto = $this->obterSalarioBruto($funcionario, $folha->competencia);
+    //     $inss = $this->calculoService->calcularINSS($salarioBruto);
+    //     $aliquotaEfetivaINSS = $this->calculoService->getAliquotaEfetivaINSS($salarioBruto);
+    //     $irrf = $this->calculoService->calcularIrrf($salarioBruto, $inss, $funcionario->dependentes()->count(), $folha->competencia);
+    //     $valeTransporte = $this->calculoService->calcularValeTransporte($salarioBruto, $funcionario->valor_vt ?? 0);
+
+    //     $outrosDescontos = 0; // Implementar lógica específica depois
+
+    //     $salarioLiquido = $salarioBruto - $inss - $irrf['valor'] - $valeTransporte - $outrosDescontos;
+
+    //     $dadosHolerite = [
+    //         'folha_pagamento_id' => $folha->id,
+    //         'funcionario_id' => $funcionario->id,
+    //         'salario_bruto' => $salarioBruto,
+    //         'inss_base' => $inss,
+    //         'inss_valor' => $inss,
+    //         'inss_aliquota_aplicada' => $aliquotaEfetivaINSS,
+    //         'irrf_valor' => $irrf['valor'],
+    //         'vt_valor' => $valeTransporte,
+    //         'outros_descontos' => $outrosDescontos,
+    //         'salario_liquido' => $salarioLiquido,
+    //     ];
+
+    //     if ($holerite) {
+    //         // Atualiza existente
+    //         $holerite->update($dadosHolerite);
+    //         return $holerite->fresh();
+    //     } else {
+    //         // Cria novo
+    //         return Holerite::create($dadosHolerite);
+    //     }
+    // }
+
     public function gerarHoleriteFuncionario(
         FolhaPagamento $folha,
         Funcionario $funcionario,
         bool $recalcular = false
     ): ?Holerite {
 
-        // Verifica se já existe holerite
-        $holerite = $folha->holerites()
+        $holerite = Holerite::where('folha_pagamento_id', $folha->id)
             ->where('funcionario_id', $funcionario->id)
             ->first();
 
         if ($holerite && !$recalcular) {
-            return $holerite; // Já existe, não recalcula
+            return $holerite;
         }
 
-        // Calcula valores
         $salarioBruto = $this->obterSalarioBruto($funcionario, $folha->competencia);
         $inss = $this->calculoService->calcularINSS($salarioBruto);
         $aliquotaEfetivaINSS = $this->calculoService->getAliquotaEfetivaINSS($salarioBruto);
-        $irrf = $this->calculoService->calcularIrrf($salarioBruto, $inss, $funcionario->dependentes ?? 0);
-        $valeTransporte = $this->calculoService->calcularValeTransporte($salarioBruto, $funcionario->valor_vt ?? 0);
+        $irrf = $this->calculoService->calcularIrrf(
+            $salarioBruto,
+            $inss,
+            $funcionario->dependentes()->count(),
+            $folha->competencia
+        );
+        $valeTransporte = $this->calculoService->calcularValeTransporte(
+            $salarioBruto,
+            $funcionario->valor_vt ?? 0
+        );
 
-        $outrosDescontos = 0; // Implementar lógica específica depois
+        $outrosDescontos = 0;
 
         $salarioLiquido = $salarioBruto - $inss - $irrf['valor'] - $valeTransporte - $outrosDescontos;
 
         $dadosHolerite = [
-            'folha_pagamento_id' => $folha->id,
-            'funcionario_id' => $funcionario->id,
-            'salario_bruto' => $salarioBruto,
-            'inss_base' => $inss,
-            'inss_valor' => $inss,
-            'inss_aliquota_aplicada' => $aliquotaEfetivaINSS,
-            'irrf_valor' => $irrf['valor'],
-            'vt_valor' => $valeTransporte,
-            'outros_descontos' => $outrosDescontos,
-            'salario_liquido' => $salarioLiquido,
+            'folha_pagamento_id'      => $folha->id,
+            'funcionario_id'          => $funcionario->id,
+            'salario_bruto'           => $salarioBruto,
+            'inss_base'               => $salarioBruto,
+            'inss_valor'              => $inss,
+            'inss_aliquota_aplicada'  => $aliquotaEfetivaINSS,
+            'irrf_valor'              => $irrf['valor'],
+            'vt_valor'                => $valeTransporte,
+            'outros_descontos'        => $outrosDescontos,
+            'salario_liquido'         => $salarioLiquido,
         ];
 
         if ($holerite) {
-            // Atualiza existente
             $holerite->update($dadosHolerite);
             return $holerite->fresh();
-        } else {
-            // Cria novo
-            return Holerite::create($dadosHolerite);
         }
+
+        return Holerite::create($dadosHolerite);
     }
 
     /**

@@ -8,115 +8,22 @@ use Illuminate\View\View;
 use Illuminate\Support\Facades\{Auth, Log};
 use Illuminate\Validation\ValidationException;
 
+use App\Services\RH\{CalculoTrabalhistaService, CalculoTributarioService, FolhaPagamentoService};
 use App\Models\Domain\RH\{Cargo, FolhaLancamento, FolhaPagamento, Funcionario, FuncionarioContrato};
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RH\FolhaPagamentoRequest;
-use App\Services\RH\{CalculoTrabalhistaService, FolhaPagamentoService};
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class FolhaPagamentoController extends Controller
 {
+    // protected CalculoTrabalhistaService $calculoFolhaService
     public function __construct(
         protected FolhaPagamentoService $folhaService,
+        // protected CalculoTributarioService $calculoFolhaService,
         protected CalculoTrabalhistaService $calculoFolhaService
     ) {}
-    //
-       // ─── INDEX ────────────────────────────────────────────────────
-    public function indexOld(Request $request): View
-    {
-        // dd($request->all(),  'Index');
-        $competencia = $request->input('competencia', now()->format('Y-m'));
-        [$ano, $mes] = explode('-', $competencia);
-        $status      = $request->input('status', '');
 
-        // $competencia .= '-01';
-
-        // dd($competencia, $status);
-
-        // Query base
-        // $query = FolhaPagamento::with('funcionario')
-        //     ->whereRaw("DATE_FORMAT(competencia, '%Y-%m') = ?", [$competencia]);
-        $query = FolhaPagamento::with('funcionario')
-                                ->whereYear('competencia', $ano)
-                                ->whereMonth('competencia', $mes);
-
-        // dd($query->toSql(), $query->getBindings(), $query->get());
-
-        // Filtro status
-        if ($status !== '' && $status !== null && $request->filled('status')) {
-            // dd('caiu dentro do if', $status);
-            $query->where('status', $status);
-        }
-
-        // dd($query->get());
-
-        $folhas = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
-
-        // dd($folhas);
-
-
-        // Totais para o rodapé (respeita filtros)
-        // $totaisQuery = FolhaPagamento::whereRaw("DATE_FORMAT(competencia, '%Y-%m') = ?", [$competencia]);
-        $totaisQuery = FolhaPagamento::whereYear('competencia', $ano)->whereMonth('competencia', $mes);
-
-        if ($status !== '') {
-            $totaisQuery->where('status', $status);
-        }
-
-        // SUM(COALESCE(dsr_hora_extra, 0))                                AS total_dsr_hora_extra,
-        // COALESCE(dsr_hora_extra, 0) +
-        // COALESCE(dsr_hora_extra, 0) +
-        $totais = $totaisQuery->selectRaw("
-            COUNT(*)                                                        AS total_funcionarios,
-            MAX(quinto_dia_util)                                            AS quinto_dia_util,
-
-            SUM(salario_base)                                               AS total_salario_base,
-            SUM(COALESCE(gratificacao_feriado, 0))                          AS total_gratificacao,
-            SUM(COALESCE(salario_familia_hr_extra, 0))                      AS total_sal_familia_hr_extra,
-            SUM(COALESCE(arredondamento_provento, 0))                       AS total_arred_provento,
-
-            SUM(COALESCE(desconto_inss, 0))                                 AS total_desconto_inss,
-            SUM(COALESCE(vale_dia_20, 0))                                   AS total_vale_dia_20,
-            SUM(COALESCE(vale_extra, 0))                                    AS total_vale_extra,
-            SUM(COALESCE(faltas_valor, 0))                                  AS total_faltas,
-            SUM(COALESCE(dsr_faltas, 0))                                    AS total_dsr_faltas,
-            SUM(COALESCE(arredondamento_desconto, 0))                       AS total_arred_desconto,
-
-            SUM(
-                salario_base +
-                COALESCE(gratificacao_feriado, 0) +
-                COALESCE(salario_familia_hr_extra, 0) +
-                COALESCE(arredondamento_provento, 0)
-            )                                                               AS total_proventos,
-
-            SUM(
-                COALESCE(desconto_inss, 0) +
-                COALESCE(vale_dia_20, 0) +
-                COALESCE(vale_extra, 0) +
-                COALESCE(faltas_valor, 0) +
-                COALESCE(dsr_faltas, 0) +
-                COALESCE(arredondamento_desconto, 0)
-            )                                                               AS total_descontos,
-
-            SUM(
-                (salario_base +
-                COALESCE(gratificacao_feriado, 0) +
-                COALESCE(salario_familia_hr_extra, 0) +
-                COALESCE(arredondamento_provento, 0))
-                -
-                (COALESCE(desconto_inss, 0) +
-                COALESCE(vale_dia_20, 0) +
-                COALESCE(vale_extra, 0) +
-                COALESCE(faltas_valor, 0) +
-                COALESCE(dsr_faltas, 0) +
-                COALESCE(arredondamento_desconto, 0))
-            )                                                               AS total_salario_liquido
-        ")->first();
-
-        return view('rh.folha-pagamento.index', compact(
-            'folhas', 'totais', 'competencia', 'status'
-        ));
-    }
+    // ─── INDEX ────────────────────────────────────────────────────
      public function index(Request $request): View
     {
 
@@ -249,134 +156,8 @@ class FolhaPagamentoController extends Controller
             'total_salario_liquido' => $totalLiquido,
         ];
     }
-    public function index3(Request $request): View
-    {
-        // O input month vem como '2026-05'
-        $competencia = $request->input('competencia', now()->format('Y-m'));
 
-        // Converte para o formato do banco (sempre dia 1)
-        $competencia .=  '-01'; // '2026-05-01'
 
-        $status = $request->input('status', '');
-
-        // Query base - agora mais limpa e usando o campo diretamente
-        $query = FolhaPagamento::with('funcionario')
-            ->where('competencia', $competencia); // ✅ Comparação direta, sem whereRaw
-
-        // Filtro status
-        if ($status !== '' && $status !== null && $request->filled('status')) {
-            $query->where('status', $status);
-        }
-
-        $folhas = $query->orderBy('created_at', 'desc')->paginate(20);
-
-        // Totais para o rodapé (respeita filtros)
-        $totaisQuery = FolhaPagamento::query()->where('competencia', $competencia); // ✅ Direto
-
-        if ($status !== '' && $status !== null && $request->filled('status')) {
-            $totaisQuery->where('status', $status);
-        }
-
-        $totais = $totaisQuery->selectRaw("
-            COUNT(*)                                                        AS total_funcionarios,
-            MAX(quinto_dia_util)                                            AS quinto_dia_util,
-
-            SUM(salario_base)                                               AS total_salario_base,
-            SUM(COALESCE(gratificacao_feriado, 0))                          AS total_gratificacao,
-            SUM(COALESCE(salario_familia_hr_extra, 0))                      AS total_sal_familia_hr_extra,
-            SUM(COALESCE(arredondamento_provento, 0))                       AS total_arred_provento,
-
-            SUM(COALESCE(desconto_inss, 0))                                 AS total_desconto_inss,
-            SUM(COALESCE(vale_dia_20, 0))                                   AS total_vale_dia_20,
-            SUM(COALESCE(vale_extra, 0))                                    AS total_vale_extra,
-            SUM(COALESCE(faltas_valor, 0))                                  AS total_faltas,
-            SUM(COALESCE(dsr_faltas, 0))                                    AS total_dsr_faltas,
-            SUM(COALESCE(arredondamento_desconto, 0))                       AS total_arred_desconto,
-
-            SUM(
-                salario_base +
-                COALESCE(gratificacao_feriado, 0) +
-                COALESCE(salario_familia_hr_extra, 0) +
-                COALESCE(arredondamento_provento, 0)
-            )                                                               AS total_proventos,
-
-            SUM(
-                COALESCE(desconto_inss, 0) +
-                COALESCE(vale_dia_20, 0) +
-                COALESCE(vale_extra, 0) +
-                COALESCE(faltas_valor, 0) +
-                COALESCE(dsr_faltas, 0) +
-                COALESCE(arredondamento_desconto, 0)
-            )                                                               AS total_descontos,
-
-            SUM(
-                (salario_base +
-                COALESCE(gratificacao_feriado, 0) +
-                COALESCE(salario_familia_hr_extra, 0) +
-                COALESCE(arredondamento_provento, 0))
-                -
-                (COALESCE(desconto_inss, 0) +
-                COALESCE(vale_dia_20, 0) +
-                COALESCE(vale_extra, 0) +
-                COALESCE(faltas_valor, 0) +
-                COALESCE(dsr_faltas, 0) +
-                COALESCE(arredondamento_desconto, 0))
-            )                                                               AS total_salario_liquido
-        ")->first();
-
-        // Passa o input original para a view (formato Y-m)
-        $competencia = Carbon::parse($competencia)->format('Y-m');
-        return view('rh.folha-pagamento.index', compact(
-            'folhas', 'totais', 'competencia', 'status'
-        ));
-    }
-    public function index2(Request $request): View
-    {
-        $competencia = $request->input('competencia', now()->format('Y-m'));
-        $status = $request->input('status', '');
-
-        [$ano, $mes] = explode('-', $competencia);
-
-        // Query base com lançamentos
-        $query = FolhaPagamento::with(['funcionario.cargo', 'lancamentos'])
-            ->whereYear('competencia', $ano)
-            ->whereMonth('competencia', $mes);
-
-        if ($status !== '') {
-            $query->where('status', $status);
-        }
-
-        $folhas = $query->orderBy('created_at', 'desc')->paginate(20);
-
-        // Totais para o rodapé
-        $totaisQuery = FolhaPagamento::whereYear('competencia', $ano)
-            ->whereMonth('competencia', $mes);
-
-        if ($status !== '') {
-            $totaisQuery->where('status', $status);
-        }
-
-        $totais = $totaisQuery->selectRaw("
-            COUNT(*) as total_funcionarios,
-            MAX(quinto_dia_util) as quinto_dia_util,
-            SUM(salario_base) as total_salario_base,
-            SUM(COALESCE(gratificacao_feriado, 0)) as total_gratificacao,
-            SUM(COALESCE(salario_familia_hr_extra, 0)) as total_sal_familia_hr_extra,
-            SUM(COALESCE(arredondamento_provento, 0)) as total_arred_provento,
-            SUM(COALESCE(desconto_inss, 0)) as total_desconto_inss,
-            SUM(COALESCE(vale_dia_20, 0)) as total_vale_dia_20,
-            SUM(COALESCE(vale_extra, 0)) as total_vale_extra,
-            SUM(COALESCE(faltas_valor, 0)) as total_faltas,
-            SUM(COALESCE(dsr_faltas, 0)) as total_dsr_faltas,
-            SUM(COALESCE(arredondamento_desconto, 0)) as total_arred_desconto,
-            SUM(COALESCE(dsr_hora_extra, 0)) as total_dsr_hora_extra,
-            SUM(COALESCE(horas_extras_totais * valor_hora_extra, 0)) as total_horas_extras
-        ")->first();
-
-        return view('rh.folha-pagamento.index', compact(
-            'folhas', 'totais', 'competencia', 'status'
-        ));
-    }
 
     // ─── CREATE ───────────────────────────────────────────────────
     public function create(): View
@@ -491,7 +272,7 @@ class FolhaPagamentoController extends Controller
     // ─── SHOW ─────────────────────────────────────────────────────
     public function show(FolhaPagamento $folha): View
     {
-        dd($folha);
+
 
         $folhaPagamento = $folha->load([
                     'funcionario',

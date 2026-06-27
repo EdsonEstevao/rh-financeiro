@@ -2,110 +2,246 @@
 
 namespace App\Services\RH;
 
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Carbon\Carbon;
 
-use App\Models\Domain\RH\Funcionario;
+use App\Models\Domain\RH\{Funcionario, TabelaInss, TabelaIrrf};
 
 class CalculoTrabalhistaService
 {
-     // ─── CONSTANTES ────────────────────────────────
+    // Propriedades de cache em memória (para não bater no banco repetidamente)
+    private ?array $faixasInssCache            = null;
+    private ?array $faixasIrrfCache             = null;
+    private ?float $deducaoDependenteIrrfCache = null;
+    private ?TabelaInss $tabelaInssCache      = null;
+    // ─── CONSTANTES DE REGRA DE NEGÓCIO ────────────
+    // (não mudam por tabela — são definidas por lei/CLT)
 
-    private const HORAS_MENSAIS_PADRAO = 220; // 44h semanais / 6 dias * 30
-    private const PERCENTUAL_HORA_EXTRA = 0.50; // 50%
-    private const PERCENTUAL_HORA_FERIADO = 1.00; // 100%
+    private const HORAS_MENSAIS_PADRAO        = 220;  // 44h semanais
+    private const PERCENTUAL_HORA_EXTRA       = 0.50; // 50%
+    private const PERCENTUAL_HORA_FERIADO     = 1.00; // 100%
+    private const PERCENTUAL_VALE_TRANSPORTE  = 0.06; // 6%
 
-    // Tabela INSS 2024 (progressiva)
-    private const FAIXAS_INSS = [
-        ['limite' => 1412.00, 'aliquota' => 0.075],
-        ['limite' => 2666.68, 'aliquota' => 0.09],
-        ['limite' => 4000.03, 'aliquota' => 0.12],
-        ['limite' => 7786.02, 'aliquota' => 0.14],
-    ];
+    // Cache TTL: 1 hora (evita ir ao banco toda requisição)
+    private const CACHE_TTL = 3600;
 
-    private const VALOR_SALARIO_FAMILIA = 62.04;
-    private const LIMITE_SALARIO_FAMILIA = 1819.26;
+    // ─── FERIADOS FIXOS ────────────────────────────
 
-    // Feriados nacionais fixos
     private const FERIADOS_FIXOS = [
-        '01-01', '21-04', '01-05', '07-09',
-        '12-10', '02-11', '15-11', '25-12',
+        '01-01', // Confraternização Universal
+        '21-04', // Tiradentes
+        '01-05', // Dia do Trabalhador
+        '07-09', // Independência
+        '12-10', // N. Sra. Aparecida
+        '02-11', // Finados
+        '15-11', // Proclamação da República
+        '25-12', // Natal
     ];
 
-    // ─── JORNADA DE TRABALHO ───────────────────────
+    // ───────────────────────────────────────────────
+    //  JORNADA DE TRABALHO
+    // ───────────────────────────────────────────────
 
-    /**
-     * Calcula valor da hora normal e extra
-     */
     public function calcularValorHora(Funcionario $funcionario): array
     {
-        $salarioBase = $funcionario->salario_base ?? 0;
+        $salarioBase  = $funcionario->salario_base ?? 0;
         $cargaHoraria = $funcionario->carga_horaria_semanal ?? 44;
         $horasMensais = ($cargaHoraria / 6) * 30;
 
-        $valorHoraNormal = $horasMensais > 0 ? $salarioBase / $horasMensais : 0;
-        $valorHoraExtra = $valorHoraNormal * (1 + self::PERCENTUAL_HORA_EXTRA);
+        $valorHoraNormal  = $horasMensais > 0 ? $salarioBase / $horasMensais : 0;
+        $valorHoraExtra   = $valorHoraNormal * (1 + self::PERCENTUAL_HORA_EXTRA);
         $valorHoraFeriado = $valorHoraNormal * (1 + self::PERCENTUAL_HORA_FERIADO);
 
         return [
-            'horas_mensais' => round($horasMensais, 2),
-            'valor_hora_normal' => round($valorHoraNormal, 2),
-            'valor_hora_extra' => round($valorHoraExtra, 2),
+            'horas_mensais'      => round($horasMensais, 2),
+            'valor_hora_normal'  => round($valorHoraNormal, 2),
+            'valor_hora_extra'   => round($valorHoraExtra, 2),
             'valor_hora_feriado' => round($valorHoraFeriado, 2),
         ];
     }
 
-    // ─── INSS ───────────────────────────────────────
+    // ───────────────────────────────────────────────
+    //  INSS (PROGRESSIVO — TABELA DO BANCO)
+    // ───────────────────────────────────────────────
 
     /**
-     * Calcula INSS progressivo
+     * Calcula INSS progressivo com base na tabela ativa vigente.
      */
-    public function calcularINSS(float $salarioBase): float
+    public function calcularINSS(float $salarioBase, ?Carbon $dataReferencia = null): float
     {
-        $inss = 0;
+        $faixas = $this->getFaixasInssAtivas($dataReferencia);
+
+        if (empty($faixas)) {
+            return 0;
+        }
+
+        $inss     = 0;
         $restante = $salarioBase;
+        $anterior = 0;
 
-        foreach (self::FAIXAS_INSS as $faixa) {
-            $valorFaixa = min($restante, $faixa['limite']);
-            $inss += $valorFaixa * $faixa['aliquota'];
+        foreach ($faixas as $faixa) {
+            $tetoFaixa  = $faixa['teto'] ?? PHP_FLOAT_MAX;
+            $aliquota   = $faixa['aliquota'];
+            $valorFaixa = min($restante, $tetoFaixa - $anterior);
+
+            if ($valorFaixa <= 0) {
+                break;
+            }
+
+            $inss     += $valorFaixa * $aliquota;
             $restante -= $valorFaixa;
+            $anterior  = $tetoFaixa;
 
-            if ($restante <= 0) break;
+            if ($restante <= 0) {
+                break;
+            }
         }
 
         return round($inss, 2);
     }
 
     /**
-     * Retorna a alíquota efetiva do INSS
+     * Alíquota efetiva do INSS (%).
      */
-    public function getAliquotaEfetivaINSS(float $salarioBase): float
+    public function getAliquotaEfetivaINSS(float $salarioBase, ?Carbon $dataReferencia = null): float
     {
-        $inss = $this->calcularINSS($salarioBase);
-        return $salarioBase > 0 ? round(($inss / $salarioBase) * 100, 2) : 0;
+        $inss = $this->calcularINSS($salarioBase, $dataReferencia);
+
+        return $salarioBase > 0
+            ? round(($inss / $salarioBase) * 100, 2)
+            : 0;
     }
 
-    // ─── SALÁRIO FAMÍLIA ────────────────────────────
+    // ───────────────────────────────────────────────
+    //  IRRF (TABELA DO BANCO)
+    // ───────────────────────────────────────────────
 
     /**
-     * Calcula salário família baseado nos dependentes
+     * Calcula IRRF com base na tabela ativa vigente.
      */
-    public function calcularSalarioFamilia(Funcionario $funcionario): float
+    public function calcularIrrf(
+        float $salarioBruto,
+        float $inssDesconto,
+        int $dependentes = 0,
+        ?Carbon $dataReferencia = null
+    ): array {
+        $deducaoPorDependente = $this->getDeducaoDependenteIrrf($dataReferencia);
+        $baseCalculo = $salarioBruto - $inssDesconto - ($dependentes * $deducaoPorDependente);
+
+        if ($baseCalculo <= 0) {
+            return [
+                'base'            => 0,
+                'valor'           => 0,
+                'aliquota_efetiva' => 0,
+            ];
+        }
+
+        $faixas = $this->getFaixasIrrfAtivas($dataReferencia);
+        $valorIrrf = 0;
+
+        // Busca a faixa onde a base de cálculo se encaixa
+        foreach ($faixas as $faixa) {
+            $teto = $faixa['teto'] ?? PHP_FLOAT_MAX;
+            if ($baseCalculo >= ($faixa['minimo'] ?? 0) && $baseCalculo <= $teto) {
+                $valorIrrf = ($baseCalculo * $faixa['aliquota']) - $faixa['deducao'];
+                break;
+            }
+        }
+
+        $valorIrrf       = max(0, round($valorIrrf, 2));
+        $aliquotaEfetiva = $baseCalculo > 0
+            ? round($valorIrrf / $baseCalculo, 4)
+            : 0;
+
+        return [
+            'base'             => round($baseCalculo, 2),
+            'valor'            => $valorIrrf,
+            'aliquota_efetiva' => $aliquotaEfetiva,
+        ];
+    }
+
+    /**
+     * Retorna o resumo completo do IRRF para exibição (debug/info).
+     */
+    public function getResumoIrrf(
+        float $salarioBruto,
+        float $inssDesconto,
+        int $dependentes = 0,
+        ?Carbon $dataReferencia = null
+    ): array {
+        $deducaoPorDependente = $this->getDeducaoDependenteIrrf($dataReferencia);
+        $baseCalculo = $salarioBruto - $inssDesconto - ($dependentes * $deducaoPorDependente);
+        $faixas      = $this->getFaixasIrrfAtivas($dataReferencia);
+
+        $faixaAplicada = null;
+        $valorIrrf     = 0;
+
+        foreach ($faixas as $faixa) {
+            $teto = $faixa['teto'] ?? PHP_FLOAT_MAX;
+            if ($baseCalculo >= ($faixa['minimo'] ?? 0) && $baseCalculo <= $teto) {
+                $faixaAplicada = $faixa;
+                $valorIrrf = ($baseCalculo * $faixa['aliquota']) - $faixa['deducao'];
+                break;
+            }
+        }
+
+        return [
+            'salario_bruto'           => $salarioBruto,
+            'inss'                    => $inssDesconto,
+            'dependentes'             => $dependentes,
+            'deducao_por_dependente'  => $deducaoPorDependente,
+            'total_deducao_dep'       => $dependentes * $deducaoPorDependente,
+            'base_calculo'            => round(max(0, $baseCalculo), 2),
+            'faixa_aplicada'          => $faixaAplicada,
+            'valor_irrf'              => round(max(0, $valorIrrf), 2),
+            'aliquota_efetiva'        => $baseCalculo > 0 ? round(max(0, $valorIrrf) / $baseCalculo * 100, 2) : 0,
+        ];
+    }
+
+    // ───────────────────────────────────────────────
+    //  SALÁRIO FAMÍLIA
+    // ───────────────────────────────────────────────
+
+    /**
+     * Calcula salário família (usa valor e limite da tabela INSS ativa).
+     */
+    public function calcularSalarioFamilia(Funcionario $funcionario, ?Carbon $dataReferencia = null): float
     {
         $dependentes = $funcionario->qtd_dependentes_salario_familia ?? 0;
         $salarioBase = $funcionario->salario_base ?? 0;
 
-        if ($dependentes === 0 || $salarioBase > self::LIMITE_SALARIO_FAMILIA) {
+        if ($dependentes === 0) {
             return 0;
         }
 
-        return round($dependentes * self::VALOR_SALARIO_FAMILIA, 2);
+        $tabela = $this->getTabelaInssAtiva($dataReferencia);
+
+        if (!$tabela || $salarioBase > ($tabela->limite_salario_familia ?? 0)) {
+            return 0;
+        }
+
+        return round($dependentes * ($tabela->valor_salario_familia ?? 0), 2);
     }
 
-    // ─── DSR (DESCANSO SEMANAL REMUNERADO) ──────────
+    // ───────────────────────────────────────────────
+    //  VALE TRANSPORTE
+    // ───────────────────────────────────────────────
 
-    /**
-     * Calcula DSR sobre horas extras
-     */
+    public function calcularValeTransporte(float $salarioBruto, float $valorTransporteReal = 0): float
+    {
+        if ($valorTransporteReal <= 0) {
+            return 0;
+        }
+
+        $descontoMaximo = $salarioBruto * self::PERCENTUAL_VALE_TRANSPORTE;
+
+        return round(min($descontoMaximo, $valorTransporteReal), 2);
+    }
+
+    // ───────────────────────────────────────────────
+    //  DSR (DESCANSO SEMANAL REMUNERADO)
+    // ───────────────────────────────────────────────
+
     public function calcularDSR(
         float $horasExtrasTotal,
         float $valorHoraExtra,
@@ -115,7 +251,7 @@ class CalculoTrabalhistaService
             return 0;
         }
 
-        $diasUteis = $this->calcularDiasUteis($competencia);
+        $diasUteis        = $this->calcularDiasUteis($competencia);
         $domingosFeriados = $this->calcularDomingosEFeriados($competencia);
 
         if ($diasUteis == 0) {
@@ -127,16 +263,13 @@ class CalculoTrabalhistaService
         return round($mediaDiaria * $domingosFeriados * $valorHoraExtra, 2);
     }
 
-    /**
-     * Calcula DSR sobre faltas
-     */
     public function calcularDSRFaltas(float $faltasValor, Carbon $competencia): float
     {
         if ($faltasValor == 0) {
             return 0;
         }
 
-        $diasUteis = $this->calcularDiasUteis($competencia);
+        $diasUteis        = $this->calcularDiasUteis($competencia);
         $domingosFeriados = $this->calcularDomingosEFeriados($competencia);
 
         if ($diasUteis == 0) {
@@ -146,11 +279,10 @@ class CalculoTrabalhistaService
         return round($faltasValor * ($domingosFeriados / $diasUteis), 2);
     }
 
-    // ─── FALTAS ─────────────────────────────────────
+    // ───────────────────────────────────────────────
+    //  FALTAS
+    // ───────────────────────────────────────────────
 
-    /**
-     * Calcula valor das faltas (dias não trabalhados)
-     */
     public function calcularFaltas(float $faltasDias, float $salarioBase, Carbon $competencia): array
     {
         if ($faltasDias == 0) {
@@ -163,46 +295,46 @@ class CalculoTrabalhistaService
             return ['valor' => 0, 'dsr' => 0];
         }
 
-        $valorDia = $salarioBase / $diasUteis;
+        $valorDia    = $salarioBase / $diasUteis;
         $valorFaltas = round($faltasDias * $valorDia, 2);
-        $dsrFaltas = $this->calcularDSRFaltas($valorFaltas, $competencia);
+        $dsrFaltas   = $this->calcularDSRFaltas($valorFaltas, $competencia);
 
         return [
             'valor' => $valorFaltas,
-            'dsr' => $dsrFaltas,
+            'dsr'   => $dsrFaltas,
         ];
     }
 
-    // ─── ARREDONDAMENTOS ────────────────────────────
+    // ───────────────────────────────────────────────
+    //  ARREDONDAMENTOS
+    // ───────────────────────────────────────────────
 
-    /**
-     * Calcula arredondamentos para fechar centavos
-     */
     public function calcularArredondamentos(float $totalProventos, float $totalDescontos): array
     {
-        $liquidoBruto = $totalProventos - $totalDescontos;
+        $liquidoBruto    = $totalProventos - $totalDescontos;
         $liquidoTruncado = floor($liquidoBruto * 100) / 100;
-        $diferenca = round($liquidoBruto - $liquidoTruncado, 2);
+        $diferenca       = round($liquidoBruto - $liquidoTruncado, 2);
 
         if ($diferenca > 0.005) {
             return ['provento' => 0, 'desconto' => round($diferenca, 2)];
-        } elseif ($diferenca < -0.005) {
+        }
+
+        if ($diferenca < -0.005) {
             return ['provento' => round(abs($diferenca), 2), 'desconto' => 0];
         }
 
         return ['provento' => 0, 'desconto' => 0];
     }
 
-    // ─── CALENDÁRIO ─────────────────────────────────
+    // ───────────────────────────────────────────────
+    //  CALENDÁRIO
+    // ───────────────────────────────────────────────
 
-    /**
-     * Calcula dias úteis do mês
-     */
     public function calcularDiasUteis(Carbon $competencia): int
     {
         $uteis = 0;
-        $data = $competencia->copy()->startOfMonth();
-        $fim = $competencia->copy()->endOfMonth();
+        $data  = $competencia->copy()->startOfMonth();
+        $fim   = $competencia->copy()->endOfMonth();
 
         while ($data->lte($fim)) {
             if (!$data->isWeekend() && !$this->isFeriado($data)) {
@@ -214,14 +346,11 @@ class CalculoTrabalhistaService
         return $uteis;
     }
 
-    /**
-     * Calcula domingos e feriados do mês
-     */
     public function calcularDomingosEFeriados(Carbon $competencia): int
     {
         $dsrs = 0;
         $data = $competencia->copy()->startOfMonth();
-        $fim = $competencia->copy()->endOfMonth();
+        $fim  = $competencia->copy()->endOfMonth();
 
         while ($data->lte($fim)) {
             if ($data->isSunday() || $this->isFeriado($data)) {
@@ -233,12 +362,9 @@ class CalculoTrabalhistaService
         return $dsrs;
     }
 
-    /**
-     * Calcula o 5º dia útil do mês
-     */
     public function calcularQuintoDiaUtil(Carbon $competencia): Carbon
     {
-        $data = $competencia->copy()->startOfMonth();
+        $data  = $competencia->copy()->startOfMonth();
         $uteis = 0;
 
         while ($uteis < 5) {
@@ -253,31 +379,27 @@ class CalculoTrabalhistaService
         return $data;
     }
 
-    /**
-     * Retorna resumo do calendário do mês
-     */
     public function getResumoCalendario(Carbon $competencia): array
     {
         return [
-            'dias_uteis' => $this->calcularDiasUteis($competencia),
+            'dias_uteis'        => $this->calcularDiasUteis($competencia),
             'domingos_feriados' => $this->calcularDomingosEFeriados($competencia),
-            'quinto_dia_util' => $this->calcularQuintoDiaUtil($competencia)->format('d/m/Y'),
+            'quinto_dia_util'   => $this->calcularQuintoDiaUtil($competencia)->format('d/m/Y'),
         ];
     }
 
-    // ─── FERIADOS ───────────────────────────────────
+    // ───────────────────────────────────────────────
+    //  FERIADOS
+    // ───────────────────────────────────────────────
 
-    /**
-     * Verifica se uma data é feriado
-     */
     public function isFeriado(Carbon $data): bool
     {
-        // Feriados fixos
+        // Fixos
         if (in_array($data->format('d-m'), self::FERIADOS_FIXOS)) {
             return true;
         }
 
-        // Feriados móveis
+        // Móveis (baseados na Páscoa)
         $pascoa = $this->calcularPascoa($data->year);
         $feriadosMoveis = [
             $pascoa->copy()->subDays(48)->format('Y-m-d'), // Segunda Carnaval
@@ -289,9 +411,6 @@ class CalculoTrabalhistaService
         return in_array($data->format('Y-m-d'), $feriadosMoveis);
     }
 
-    /**
-     * Calcula data da Páscoa (Algoritmo de Meeus)
-     */
     private function calcularPascoa(int $ano): Carbon
     {
         $a = $ano % 19;
@@ -312,56 +431,175 @@ class CalculoTrabalhistaService
         return Carbon::create($ano, $mes, $dia);
     }
 
+    // ═══════════════════════════════════════════════
+    //  🔌 CONSULTAS AO BANCO (TABELAS DINÂMICAS)
+    // ═══════════════════════════════════════════════
+
     /**
-     * Calcula IRRF baseado na tabela 2026 (valores exemplo)
+     * Busca as faixas de INSS da tabela ativa vigente.
+     * Usa cache para evitar N consultas na mesma requisição.
      */
-    public function calcularIrrf(float $salarioBruto, float $inssDesconto, int $dependentes = 0): array
+    private function getFaixasInssAtivas(?Carbon $dataReferencia = null): array
     {
-        $deducaoporDependente = 189.59; // 2026 exemplo
-        $baseCalculo = $salarioBruto - $inssDesconto - ($dependentes * $deducaoporDependente);
-
-        if ($baseCalculo <= 0) {
-            return ['base' => 0, 'valor' => 0, 'aliquota_efetiva' => 0];
+        if ($this->faixasInssCache !== null) {
+            return $this->faixasInssCache;
         }
 
-        // Tabela IRRF 2026 (valores exemplo)
-        $faixas = [
-            ['min' => 0,       'max' => 2259.20, 'aliquota' => 0,    'deducao' => 0],
-            ['min' => 2259.21, 'max' => 2826.65, 'aliquota' => 0.075, 'deducao' => 169.44],
-            ['min' => 2826.66, 'max' => 3751.05, 'aliquota' => 0.15,  'deducao' => 381.44],
-            ['min' => 3751.06, 'max' => 4664.68, 'aliquota' => 0.225, 'deducao' => 662.77],
-            ['min' => 4664.69, 'max' => PHP_FLOAT_MAX, 'aliquota' => 0.275, 'deducao' => 896.00],
-        ];
+        $data = $dataReferencia ?? now();
 
-        $valorIrrf = 0;
+        $cacheKey = 'faixas_inss_ativas_' . $data->format('Y_m');
 
-        foreach ($faixas as $faixa) {
-            if ($baseCalculo >= $faixa['min'] && $baseCalculo <= $faixa['max']) {
-                $valorIrrf = ($baseCalculo * $faixa['aliquota']) - $faixa['deducao'];
-                break;
+        $this->faixasInssCache = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($data) {
+            $tabela = TabelaInss::with('faixas')
+                ->where('ativo', true)
+                ->where('vigencia_inicio', '<=', $data)
+                ->where(function ($q) use ($data) {
+                    $q->whereNull('vigencia_fim')
+                      ->orWhere('vigencia_fim', '>=', $data);
+                })
+                ->orderBy('ano_vigencia', 'desc')
+                ->first();
+
+            if (!$tabela) {
+                return $this->getFaixasInssFallback();
             }
-        }
 
-        $valorIrrf = max(0, $valorIrrf); // Nunca negativo
-        $aliquotaEfetiva = $baseCalculo > 0 ? $valorIrrf / $baseCalculo : 0;
+            return $tabela->faixas
+                ->sortBy('ordem')
+                ->map(fn ($f) => [
+                    'ordem'    => $f->ordem,
+                    'teto'     => (float) $f->teto,
+                    'aliquota' => (float) $f->aliquota,
+                ])
+                ->values()
+                ->toArray();
+        });
 
-        return [
-            'base' => $baseCalculo,
-            'valor' => round($valorIrrf, 2),
-            'aliquota_efetiva' => round($aliquotaEfetiva, 4),
-        ];
+        return $this->faixasInssCache;
     }
 
     /**
-     * Calcula Vale Transporte (6% do salário, limitado ao valor real)
+     * Busca as faixas de IRRF da tabela ativa vigente.
      */
-    public function calcularValeTransporte(float $salarioBruto, float $valorTransporteReal = 0): float
+    private function getFaixasIrrfAtivas(?Carbon $dataReferencia = null): array
     {
-        if ($valorTransporteReal <= 0) {
-            return 0; // Funcionário não usa transporte público
+        if ($this->faixasIrrfCache !== null) {
+            return $this->faixasIrrfCache;
         }
 
-        $descontoMaximo = $salarioBruto * 0.06; // 6% do salário
-        return min($descontoMaximo, $valorTransporteReal);
+        $data = $dataReferencia ?? now();
+
+        $cacheKey = 'faixas_irrf_ativas_' . $data->format('Y_m');
+
+        $this->faixasIrrfCache = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($data) {
+            $tabela = TabelaIrrf::with('faixas')
+                ->where('ativo', true)
+                ->where('vigencia_inicio', '<=', $data)
+                ->where(function ($q) use ($data) {
+                    $q->whereNull('vigencia_fim')
+                      ->orWhere('vigencia_fim', '>=', $data);
+                })
+                ->orderBy('ano_vigencia', 'desc')
+                ->first();
+
+            if (!$tabela) {
+                return $this->getFaixasIrrfFallback();
+            }
+
+            return $tabela->faixas
+                ->sortBy('ordem')
+                ->map(fn ($f) => [
+                    'ordem'    => $f->ordem,
+                    'minimo'   => (float) $f->minimo,
+                    'teto'     => (float) $f->teto,
+                    'aliquota' => (float) $f->aliquota,
+                    'deducao'  => (float) $f->deducao,
+                ])
+                ->values()
+                ->toArray();
+        });
+
+        return $this->faixasIrrfCache;
+    }
+
+    /**
+     * Busca o valor de dedução por dependente da tabela IRRF ativa.
+     */
+    private function getDeducaoDependenteIrrf(?Carbon $dataReferencia = null): float
+    {
+        if ($this->deducaoDependenteIrrfCache !== null) {
+            return $this->deducaoDependenteIrrfCache;
+        }
+
+        $data = $dataReferencia ?? now();
+
+        $cacheKey = 'deducao_dependente_irrf_' . $data->format('Y_m');
+
+        $this->deducaoDependenteIrrfCache = Cache::remember(
+            $cacheKey,
+            self::CACHE_TTL,
+            function () use ($data) {
+                $tabela = TabelaIrrf::where('ativo', true)
+                    ->where('vigencia_inicio', '<=', $data)
+                    ->where(function ($q) use ($data) {
+                        $q->whereNull('vigencia_fim')
+                          ->orWhere('vigencia_fim', '>=', $data);
+                    })
+                    ->orderBy('ano_vigencia', 'desc')
+                    ->first();
+
+                return (float) ($tabela->deducao_dependente ?? 189.59);
+            }
+        );
+
+        return $this->deducaoDependenteIrrfCache;
+    }
+
+    /**
+     * Busca a tabela INSS ativa (model completo, usado pelo salário família).
+     */
+    private function getTabelaInssAtiva(?Carbon $dataReferencia = null): ?TabelaInss
+    {
+        $data = $dataReferencia ?? now();
+
+        return Cache::remember(
+            'tabela_inss_ativa_' . $data->format('Y_m'),
+            self::CACHE_TTL,
+            function () use ($data) {
+                return TabelaInss::where('ativo', true)
+                    ->where('vigencia_inicio', '<=', $data)
+                    ->where(function ($q) use ($data) {
+                        $q->whereNull('vigencia_fim')
+                          ->orWhere('vigencia_fim', '>=', $data);
+                    })
+                    ->orderBy('ano_vigencia', 'desc')
+                    ->first();
+            }
+        );
+    }
+
+    // ───────────────────────────────────────────────
+    //  FALLBACKS (se não houver tabela no banco)
+    // ───────────────────────────────────────────────
+
+    private function getFaixasInssFallback(): array
+    {
+        return [
+            ['ordem' => 1, 'teto' => 1412.00, 'aliquota' => 0.075],
+            ['ordem' => 2, 'teto' => 2666.68, 'aliquota' => 0.09],
+            ['ordem' => 3, 'teto' => 4000.03, 'aliquota' => 0.12],
+            ['ordem' => 4, 'teto' => 7786.02, 'aliquota' => 0.14],
+        ];
+    }
+
+    private function getFaixasIrrfFallback(): array
+    {
+        return [
+            ['ordem' => 1, 'minimo' => 0,       'teto' => 2259.20, 'aliquota' => 0,    'deducao' => 0],
+            ['ordem' => 2, 'minimo' => 2259.21, 'teto' => 2826.65, 'aliquota' => 0.075, 'deducao' => 169.44],
+            ['ordem' => 3, 'minimo' => 2826.66, 'teto' => 3751.05, 'aliquota' => 0.15,  'deducao' => 381.44],
+            ['ordem' => 4, 'minimo' => 3751.06, 'teto' => 4664.68, 'aliquota' => 0.225, 'deducao' => 662.77],
+            ['ordem' => 5, 'minimo' => 4664.69, 'teto' => PHP_FLOAT_MAX, 'aliquota' => 0.275, 'deducao' => 896.00],
+        ];
     }
 }

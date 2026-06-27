@@ -2,14 +2,6 @@
 
 namespace App\Models\Domain\RH;
 
-// use Illuminate\Database\Eloquent\Model;
-
-// class FaixaInss extends Model
-// {
-//     //
-
-// }
-
 use Illuminate\Database\Eloquent\Model;
 
 use App\Models\Domain\RH\TabelaInss;
@@ -18,7 +10,11 @@ class FaixaInss extends Model
 {
     protected $table = 'faixas_inss';
     protected $fillable = [
-        'tabela_inss_id', 'ordem', 'teto', 'aliquota', 'deducao',
+        'tabela_inss_id',
+        'ordem',
+        'teto',
+        'aliquota',
+        'deducao',
     ];
 
     protected $casts = [

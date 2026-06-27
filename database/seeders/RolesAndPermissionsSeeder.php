@@ -60,6 +60,19 @@ class RolesAndPermissionsSeeder extends Seeder
             'cartoes.view',
             'cartoes.manage',
             'financeiro.reports',
+
+            // INSS
+            'faixa-inss.view',
+            'faixa-inss.create',
+            'faixa-inss.edit',
+            'faixa-inss.delete',
+
+            // IRRF
+            'faixa-irrf.view',
+            'faixa-irrf.create',
+            'faixa-irrf.edit',
+            'faixa-irrf.delete',
+
         ];
 
         // Criar todas as permissões
@@ -101,6 +114,15 @@ class RolesAndPermissionsSeeder extends Seeder
             'folha.close',
             'folha.reopen',
             'folha.reports',
+            'faixa-inss.view',
+            'faixa-inss.create',
+            'faixa-inss.edit',
+            'faixa-inss.delete',
+            'faixa-irrf.view',
+            'faixa-irrf.create',
+            'faixa-irrf.edit',
+            'faixa-irrf.delete'
+
         ]);
 
         // FINANCEIRO: Módulo Financeiro completo

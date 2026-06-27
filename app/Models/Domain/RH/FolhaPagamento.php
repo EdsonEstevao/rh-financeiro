@@ -2,9 +2,11 @@
 
 namespace App\Models\Domain\RH;
 
-use Illuminate\Database\Eloquent\{Builder, Model};
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany, HasOne};
+
 use Illuminate\Support\Carbon;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;

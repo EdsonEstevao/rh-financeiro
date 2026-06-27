@@ -224,6 +224,45 @@
                                                     Cargos
                                                 </a>
                                             @endcanany
+
+                                            {{-- ═══════════ NOVO: Tabelas Tributárias ═══════════ --}}
+                                            @canany(['faixa-inss.view', 'faixa-irrf.view'])
+                                                <div class="my-1 border-t border-gray-100"></div>
+                                                <p
+                                                    class="px-4 py-1 text-xs font-semibold tracking-wide text-gray-400 uppercase">
+                                                    Tabelas Tributárias
+                                                </p>
+                                            @endcanany
+
+                                            {{-- Tabela INSS --}}
+                                            @can('faixa-inss.view')
+                                                <a href="{{ route('rh.faixa-inss.index') }}"
+                                                    class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors
+        {{ request()->routeIs('rh.faixa-inss.*') ? 'bg-indigo-50 text-indigo-700 font-medium' : '' }}">
+                                                    <svg class="w-4 h-4 text-gray-400" viewBox="0 0 20 20"
+                                                        fill="currentColor">
+                                                        <path fill-rule="evenodd"
+                                                            d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V8a2 2 0 00-2-2h-5L9 4H4zm4 3a1 1 0 000 2h4a1 1 0 100-2H8zm-1 4a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1z"
+                                                            clip-rule="evenodd" />
+                                                    </svg>
+                                                    Tabela INSS
+                                                </a>
+                                            @endcan
+
+                                            {{-- Tabela IRRF --}}
+                                            @can('faixa-irrf.view')
+                                                <a href="{{ route('rh.faixa-irrf.index') }}"
+                                                    class="flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors
+        {{ request()->routeIs('rh.faixa-irrf.*') ? 'bg-indigo-50 text-indigo-700 font-medium' : '' }}">
+                                                    <svg class="w-4 h-4 text-gray-400" viewBox="0 0 20 20"
+                                                        fill="currentColor">
+                                                        <path fill-rule="evenodd"
+                                                            d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z"
+                                                            clip-rule="evenodd" />
+                                                    </svg>
+                                                    Tabela IRRF
+                                                </a>
+                                            @endcan
                                         </div>
                                     </div>
                                 </div>
@@ -638,6 +677,42 @@
                                                 Cargos
                                             </a>
                                         @endcanany
+
+                                        {{-- ═══════════ NOVO MOBILE: Tabelas Tributárias ═══════════ --}}
+                                        @canany(['faixa-inss.view', 'faixa-irrf.view'])
+                                            <div class="pt-3 pb-1">
+                                                <p class="px-3 text-xs font-bold tracking-wider text-gray-400 uppercase">
+                                                    Tabelas Tributárias
+                                                </p>
+                                            </div>
+                                        @endcanany
+
+                                        @can('faixa-inss.view')
+                                            <a href="{{ route('rh.faixa-inss.index') }}"
+                                                class="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors
+        {{ request()->routeIs('rh.faixa-inss.*') ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700 hover:bg-gray-50' }}">
+                                                <svg class="w-5 h-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd"
+                                                        d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V8a2 2 0 00-2-2h-5L9 4H4zm4 3a1 1 0 000 2h4a1 1 0 100-2H8zm-1 4a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1z"
+                                                        clip-rule="evenodd" />
+                                                </svg>
+                                                Tabela INSS
+                                            </a>
+                                        @endcan
+
+                                        @can('faixa-irrf.view')
+                                            <a href="{{ route('rh.faixa-irrf.index') }}"
+                                                class="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors
+        {{ request()->routeIs('rh.faixa-irrf.*') ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700 hover:bg-gray-50' }}">
+                                                <svg class="w-5 h-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd"
+                                                        d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z"
+                                                        clip-rule="evenodd" />
+                                                </svg>
+                                                Tabela IRRF
+                                            </a>
+                                        @endcan
+
                                     @endcanany
 
                                     {{-- ── SEÇÃO FINANCEIRO MOBILE ─── --}}

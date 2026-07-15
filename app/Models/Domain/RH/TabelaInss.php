@@ -1,29 +1,27 @@
 <?php
 
-// namespace App\Models\Domain\RH;
-
-// use Illuminate\Database\Eloquent\Model;
-
-// class TabelaInss extends Model
-// {
-//     //
-// }
 namespace App\Models\Domain\RH;
 
-use Illuminate\Database\Eloquent\{Model, SoftDeletes};
+use Illuminate\Database\Eloquent\{Builder, Model, SoftDeletes};
+
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
-// use Spatie\Activitylog\Traits\LogsActivity;
 
 class TabelaInss extends Model
 {
+    //
     use SoftDeletes, LogsActivity;
 
     protected $table = 'tabelas_inss';
 
     protected $fillable = [
-        'ano_vigencia', 'descricao', 'ativo',
-        'vigencia_inicio', 'vigencia_fim',
+        'ano_vigencia',
+        'descricao',
+        'ativo',
+        'vigencia_inicio',
+        'vigencia_fim',
+        'limite_salario_familia',
+        'valor_salario_familia',
     ];
 
     protected $casts = [
@@ -36,9 +34,11 @@ class TabelaInss extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logAll()
-            ->logOnlyDirty()
-            ->setDescriptionForEvent(fn(string $eventName) => "Tabela INSS {$eventName}");
+                ->logOnly(['*'])       // Na v5, rastreia todos os atributos da tabela usando o curinga
+                ->logOnlyDirty()       // Grava no log apenas as colunas que realmente mudaram
+                ->dontLogEmptyChanges() // Evita criar um log se nenhuma alteração real foi feita
+                ->setDescriptionForEvent(fn(string $eventName) => "Tabela INSS {$eventName}");
+            // ->setDescriptionForEvent(fn(string $eventName) => "Tabela INSS {$eventName}");
     }
 
     // Relacionamentos
@@ -48,19 +48,19 @@ class TabelaInss extends Model
     }
 
     // Scopes
-    public function scopeAtiva($query)
+    public function scopeAtiva(Builder $query)
     {
         return $query->where('ativo', true);
     }
 
-    public function scopeVigente($query, $data = null)
+    public function scopeVigente(Builder $query, $data = null)
     {
         $data = $data ?? now();
         return $query->where('vigencia_inicio', '<=', $data)
-                     ->where(function ($q) use ($data) {
-                         $q->whereNull('vigencia_fim')
-                           ->orWhere('vigencia_fim', '>=', $data);
-                     });
+                    ->where(function ($q) use ($data) {
+                        $q->whereNull('vigencia_fim')
+                        ->orWhere('vigencia_fim', '>=', $data);
+                    });
     }
 
     // ─── Cálculo ───────────────────────────────

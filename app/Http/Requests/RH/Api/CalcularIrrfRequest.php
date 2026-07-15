@@ -1,14 +1,15 @@
 <?php
 
-namespace App\Http\Requests\Rh\Api;
+namespace App\Http\Requests\RH\Api;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Auth;
 
 class CalcularIrrfRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return Auth::check();
     }
 
     public function rules(): array

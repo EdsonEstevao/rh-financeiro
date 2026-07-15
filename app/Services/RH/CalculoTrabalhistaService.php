@@ -13,7 +13,7 @@ class CalculoTrabalhistaService
     private ?array $faixasInssCache            = null;
     private ?array $faixasIrrfCache             = null;
     private ?float $deducaoDependenteIrrfCache = null;
-    private ?TabelaInss $tabelaInssCache      = null;
+
     // ─── CONSTANTES DE REGRA DE NEGÓCIO ────────────
     // (não mudam por tabela — são definidas por lei/CLT)
 
@@ -388,6 +388,13 @@ class CalculoTrabalhistaService
         ];
     }
 
+    // Adicionar no CalculoTrabalhistaService:
+    public function getValorSalarioFamilia(?Carbon $dataReferencia = null): float
+    {
+        $tabela = $this->getTabelaInssAtiva($dataReferencia);
+        return (float) ($tabela->valor_salario_familia ?? 67.54);
+    }
+
     // ───────────────────────────────────────────────
     //  FERIADOS
     // ───────────────────────────────────────────────
@@ -556,28 +563,37 @@ class CalculoTrabalhistaService
     }
 
     /**
-     * Busca a tabela INSS ativa (model completo, usado pelo salário família).
+     * Busca a tabela INSS ativa.
+     * Retorna uma instância limpa para evitar problemas de desserialização em cache.
      */
     private function getTabelaInssAtiva(?Carbon $dataReferencia = null): ?TabelaInss
     {
         $data = $dataReferencia ?? now();
+        $cacheKey = 'tabela_inss_ativa_array_' . $data->format('Y_m');
 
-        return Cache::remember(
-            'tabela_inss_ativa_' . $data->format('Y_m'),
-            self::CACHE_TTL,
-            function () use ($data) {
-                return TabelaInss::where('ativo', true)
-                    ->where('vigencia_inicio', '<=', $data)
-                    ->where(function ($q) use ($data) {
-                        $q->whereNull('vigencia_fim')
-                          ->orWhere('vigencia_fim', '>=', $data);
-                    })
-                    ->orderBy('ano_vigencia', 'desc')
-                    ->first();
-            }
-        );
+        // 1. Guardamos apenas os atributos necessários em formato de array no cache
+        $dadosTabela = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($data) {
+            $tabela = TabelaInss::query()
+                ->where('ativo', true)
+                ->whereDate('vigencia_inicio', '<=', $data)
+                ->where(function ($query) use ($data) {
+                    $query->whereNull('vigencia_fim')
+                        ->orWhereDate('vigencia_fim', '>=', $data);
+                })
+                ->orderBy('ano_vigencia', 'desc')
+                ->first();
+
+            return $tabela ? $tabela->toArray() : null;
+        });
+
+        if (!$dadosTabela) {
+            return null;
+        }
+
+        // 2. Reconstruímos uma model "viva" e limpa a partir do array guardado
+        // Isso evita o erro de classe incompleta independente do driver de cache!
+        return (new TabelaInss())->newFromBuilder($dadosTabela);
     }
-
     // ───────────────────────────────────────────────
     //  FALLBACKS (se não houver tabela no banco)
     // ───────────────────────────────────────────────

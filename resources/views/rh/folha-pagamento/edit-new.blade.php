@@ -1,22 +1,20 @@
 {{-- resources/views/rh/folha-pagamento/edit.blade.php --}}
 @extends('layouts.app')
 
-
 @section('content')
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" x-data="folhaPagamentoEditForm({{ Js::from($folhaPagamento->load(['funcionario.cargo', 'lancamentos'])) }})">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" x-data="folhaPagamentoEditForm({{ Js::from($folhaPagamento->load(['funcionario.cargo', 'lancamentos'])) }})" x-init="initEdit()">
 
         {{-- Header --}}
         <div class="mb-6 flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-gray-900">Editar Folha de Pagamento</h1>
                 <p class="mt-1 text-sm text-gray-600">
-                    Funcionário: <span class="font-semibold">{{ $folhaPagamento->funcionario->nome_completo }}</span> |
-                    Competência: <span
-                        class="font-semibold">{{ \Carbon\Carbon::parse($folhaPagamento->competencia)->format('m/Y') }}</span>
+                    Funcionário: <span class="font-semibold text-indigo-600" x-text="funcionario.nome_completo"></span> |
+                    Competência: <span class="font-semibold" x-text="competenciaDisplay"></span>
                 </p>
             </div>
             <div class="flex gap-3">
-                <a href="{{ route('rh.folha-pagamento.show', $folhaPagamento->id) }}"
+                <a href="{{ route('rh.folha-pagamento.index') }}"
                     class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50">
                     ← Voltar
                 </a>
@@ -31,66 +29,84 @@
             @csrf
             @method('PUT')
 
+            {{-- ============================================ --}}
+            {{-- GRID: ENTRADA (ESQUERDA) | SAÍDA (DIREITA) --}}
+            {{-- ============================================ --}}
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
+                {{-- ============================================ --}}
                 {{-- COLUNA ESQUERDA: DADOS DE ENTRADA --}}
+                {{-- ============================================ --}}
                 <div class="space-y-6">
 
-                    {{-- Dados do Funcionário --}}
+                    {{-- FUNCIONÁRIO (READ-ONLY) --}}
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-4">👤 Funcionário</h2>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <p class="text-lg font-medium text-gray-900" x-text="funcionario.nome_completo"></p>
+                            <p class="text-sm text-gray-600" x-text="funcionario.cpf"></p>
+                            <p class="text-sm text-gray-600" x-text="funcionario.cargo || 'N/A'"></p>
+                        </div>
+                        <input type="hidden" name="funcionario_id" x-model="funcionario.id">
+                    </div>
+
+                    {{-- DADOS DO FUNCIONÁRIO --}}
                     <div class="bg-white rounded-lg shadow p-6">
                         <h2 class="text-lg font-semibold text-gray-800 mb-4">📋 Dados do Funcionário</h2>
+
                         <div class="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                                <label class="block text-xs text-gray-500">Nome</label>
-                                <p class="font-semibold">{{ $folhaPagamento->funcionario->nome_completo }}</p>
-                            </div>
-                            <div>
-                                <label class="block text-xs text-gray-500">Função</label>
-                                <p class="font-semibold">{{ $folhaPagamento->funcionario->cargo?->nome ?? 'Não informado' }}
-                                </p>
-                            </div>
-                            <div>
                                 <label class="block text-xs text-gray-500">Local de Trabalho</label>
-                                <p class="font-semibold">
-                                    {{ $folhaPagamento->funcionario->local_trabalho ?? 'Não informado' }}</p>
+                                <input type="text" x-model="funcionario.local_trabalho" disabled
+                                    class="mt-1 block w-full rounded-md border-gray-200 bg-gray-50 text-gray-700 text-sm">
                             </div>
                             <div>
                                 <label class="block text-xs text-gray-500">Tipo de Contratação</label>
-                                <p class="font-semibold uppercase">
-                                    {{ $folhaPagamento->funcionario->tipo_contratacao ?? 'CLT' }}</p>
+                                <input type="text" x-model="funcionario.tipo_contratacao" disabled
+                                    class="mt-1 block w-full rounded-md border-gray-200 bg-gray-50 text-gray-700 text-sm uppercase">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-500">Função</label>
+                                <input type="text" x-model="funcionario.cargo" disabled
+                                    class="mt-1 block w-full rounded-md border-gray-200 bg-gray-50 text-gray-700 text-sm">
                             </div>
                             <div>
                                 <label class="block text-xs text-gray-500">Salário Base</label>
-                                <p class="font-semibold text-green-700">R$
-                                    {{ number_format($folhaPagamento->funcionario->salario_base, 2, ',', '.') }}</p>
+                                <input type="text" :value="formatMoney(funcionario.salario_base)" disabled
+                                    class="mt-1 block w-full rounded-md border-gray-200 bg-green-50 text-green-700 text-sm font-semibold">
                             </div>
                             <div>
-                                <label class="block text-xs text-gray-500">Carga Horária</label>
-                                <p class="font-semibold">{{ $folhaPagamento->funcionario->carga_horaria_semanal ?? 44 }}h
-                                    semanais</p>
+                                <label class="block text-xs text-gray-500">Carga Horária Semanal</label>
+                                <input type="text" :value="funcionario.carga_horaria_semanal + 'h'" disabled
+                                    class="mt-1 block w-full rounded-md border-gray-200 bg-gray-50 text-gray-700 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-500">Status</label>
+                                <select name="status" x-model="form.status"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
+                                    <option value="aberta">🟡 Aberta</option>
+                                    <option value="fechada">🟢 Fechada</option>
+                                </select>
                             </div>
                         </div>
                     </div>
 
-                    {{-- Lançamentos Existentes (EDITÁVEIS) --}}
+                    {{-- VARIÁVEIS MENSAIS --}}
                     <div class="bg-white rounded-lg shadow p-6">
-                        <h2 class="text-lg font-semibold text-gray-800 mb-4">📝 Lançamentos do Mês</h2>
-                        <p class="text-sm text-gray-500 mb-4">Edite os valores conforme necessário</p>
+                        <h2 class="text-lg font-semibold text-gray-800 mb-4">📝 Variáveis do Mês</h2>
 
                         <div class="space-y-4">
-                            {{-- Competência (somente leitura) --}}
+                            {{-- Competência (read-only) --}}
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">📅 Competência</label>
-                                <input type="text"
-                                    value="{{ \Carbon\Carbon::parse($folhaPagamento->competencia)->format('m/Y') }}"
-                                    disabled class="mt-1 block w-full rounded-md border-gray-200 bg-gray-50 text-gray-700">
-                                <input type="hidden" name="competencia"
-                                    value="{{ \Carbon\Carbon::parse($folhaPagamento->competencia)->format('Y-m') }}">
+                                <input type="text" x-model="competenciaDisplay" disabled
+                                    class="mt-1 block w-full rounded-md border-gray-200 bg-gray-50 text-gray-700">
+                                <input type="hidden" name="competencia" x-model="competencia">
+                                <p class="mt-1 text-xs text-gray-500">Competência não pode ser alterada após a criação.</p>
                             </div>
 
-                            {{-- Grid de lançamentos --}}
+                            {{-- Grid de variáveis --}}
                             <div class="grid grid-cols-2 gap-4">
-
                                 {{-- Horas Extras Normais --}}
                                 <div>
                                     <label class="block text-xs font-medium text-gray-700">⏰ Horas Extras (50%)</label>
@@ -138,7 +154,7 @@
 
                                 {{-- Vale Dia 20 --}}
                                 <div>
-                                    <label class="block text-xs font-medium text-gray-700">💳 Vale Dia 20 (R$)</label>
+                                    <label class="block text-xs font-medium text-gray-700">💳 Dia 20 Vale (R$)</label>
                                     <input type="number" name="vale_dia_20" x-model.number="form.vale_dia_20"
                                         step="0.01" min="0" @input="calcularTotais()"
                                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
@@ -147,8 +163,8 @@
                                 {{-- Vale Extra --}}
                                 <div>
                                     <label class="block text-xs font-medium text-gray-700">🎫 Vale Extra (R$)</label>
-                                    <input type="number" name="vale_extra" x-model.number="form.vale_extra" step="0.01"
-                                        min="0" @input="calcularTotais()"
+                                    <input type="number" name="vale_extra" x-model.number="form.vale_extra"
+                                        step="0.01" min="0" @input="calcularTotais()"
                                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                                 </div>
 
@@ -159,16 +175,6 @@
                                         x-model.number="form.gratificacao_feriado" step="0.01" min="0"
                                         @input="calcularTotais()"
                                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
-                                </div>
-
-                                {{-- Status --}}
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-700">📌 Status</label>
-                                    <select name="status" x-model="form.status"
-                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
-                                        <option value="aberta">Aberta</option>
-                                        <option value="fechada">Fechada</option>
-                                    </select>
                                 </div>
                             </div>
 
@@ -183,10 +189,12 @@
                     </div>
                 </div>
 
-                {{-- COLUNA DIREITA: RESULTADOS --}}
+                {{-- ============================================ --}}
+                {{-- COLUNA DIREITA: RESULTADOS CALCULADOS --}}
+                {{-- ============================================ --}}
                 <div class="space-y-6">
 
-                    {{-- Informações da Jornada --}}
+                    {{-- INFORMAÇÕES DA JORNADA --}}
                     <div class="bg-blue-50 rounded-lg shadow p-6">
                         <h2 class="text-lg font-semibold text-blue-800 mb-4">📊 Informações da Jornada</h2>
                         <div class="grid grid-cols-2 gap-4 text-sm">
@@ -203,153 +211,185 @@
                                 <span class="font-semibold ml-2" x-text="formatMoney(valorHoraNormal)"></span>
                             </div>
                             <div>
-                                <span class="text-blue-600">Valor Hora Extra:</span>
+                                <span class="text-blue-600">Valor Hora Extra (50%):</span>
                                 <span class="font-semibold ml-2" x-text="formatMoney(valorHoraExtra)"></span>
                             </div>
-                        </div>
-                    </div>
-
-                    {{-- Resumo Financeiro --}}
-                    <div class="bg-white rounded-lg shadow p-6">
-                        <h2 class="text-lg font-semibold text-gray-800 mb-4">💰 Resumo Financeiro</h2>
-
-                        <div class="grid grid-cols-3 gap-4 text-center">
-                            <div class="bg-green-50 rounded-lg p-4">
-                                <span class="text-xs text-green-600">Proventos</span>
-                                <p class="text-xl font-bold text-green-700" x-text="formatMoney(totalProventos)"></p>
+                            <div>
+                                <span class="text-blue-600">Valor Hora Sábado (50%):</span>
+                                <span class="font-semibold ml-2" x-text="formatMoney(valorHoraExtra)"></span>
                             </div>
-                            <div class="bg-red-50 rounded-lg p-4">
-                                <span class="text-xs text-red-600">Descontos</span>
-                                <p class="text-xl font-bold text-red-700" x-text="formatMoney(totalDescontos)"></p>
+                            <div>
+                                <span class="text-blue-600">Valor Hora Feriado (100%):</span>
+                                <span class="font-semibold ml-2" x-text="formatMoney(valorHoraNormal * 2)"></span>
                             </div>
-                            <div class="bg-blue-50 rounded-lg p-4">
-                                <span class="text-xs text-blue-600">Líquido</span>
-                                <p class="text-xl font-bold text-blue-700" x-text="formatMoney(salarioLiquido)"></p>
+                            <div class="col-span-2">
+                                <span class="text-blue-600">📅 5º Dia Útil:</span>
+                                <span class="font-semibold ml-2" x-text="quintoDiaUtil || '-'"></span>
                             </div>
                         </div>
                     </div>
 
-                    {{-- Tabela de Lançamentos --}}
+                    {{-- RESULTADO FINAL (TABELA COMPLETA) --}}
                     <div class="bg-white rounded-lg shadow p-6">
-                        <h2 class="text-lg font-semibold text-gray-800 mb-4">📋 Lançamentos Calculados</h2>
+                        <h2 class="text-lg font-semibold text-gray-800 mb-4">📋 Folha de Pagamento Calculada</h2>
 
                         <div class="overflow-x-auto">
-                            <table class="min-w-full text-sm">
-                                <thead>
-                                    <tr class="bg-gray-50">
-                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                                            Descrição</th>
-                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                                            Qtd/Horas</th>
+                            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Campo
+                                        </th>
+                                        <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Qtd
+                                        </th>
                                         <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Valor
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y">
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    {{-- Dados Cadastrais --}}
+                                    <tr class="bg-gray-50">
+                                        <td colspan="3" class="px-3 py-2 text-xs font-semibold text-gray-700">📋 DADOS
+                                            CADASTRAIS</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-3 py-2 text-gray-600">Local de Trabalho</td>
+                                        <td class="px-3 py-2 text-center text-gray-400">-</td>
+                                        <td class="px-3 py-2 text-right font-medium"
+                                            x-text="funcionario.local_trabalho || '-'"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-3 py-2 text-gray-600">Tipo de Contratação</td>
+                                        <td class="px-3 py-2 text-center text-gray-400">-</td>
+                                        <td class="px-3 py-2 text-right font-medium uppercase"
+                                            x-text="funcionario.tipo_contratacao || '-'"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-3 py-2 text-gray-600">Salário Base</td>
+                                        <td class="px-3 py-2 text-center text-gray-400">-</td>
+                                        <td class="px-3 py-2 text-right font-semibold text-green-700"
+                                            x-text="formatMoney(form.salario_base)"></td>
+                                    </tr>
+
                                     {{-- Proventos --}}
-                                    <tr class="bg-green-50">
+                                    <tr class="bg-gray-50">
                                         <td colspan="3" class="px-3 py-2 text-xs font-semibold text-green-700">💵
                                             PROVENTOS</td>
                                     </tr>
                                     <tr>
-                                        <td class="px-3 py-2 text-gray-600">Salário Base</td>
-                                        <td class="px-3 py-2 text-right text-gray-400">-</td>
+                                        <td class="px-3 py-2 text-gray-600">Salário</td>
+                                        <td class="px-3 py-2 text-center text-gray-400">-</td>
                                         <td class="px-3 py-2 text-right font-medium"
                                             x-text="formatMoney(form.salario_base)"></td>
                                     </tr>
                                     <tr x-show="form.horas_extras_totais > 0">
-                                        <td class="px-3 py-2 text-gray-600">Horas Extras (50%)</td>
-                                        <td class="px-3 py-2 text-right text-gray-500"
+                                        <td class="px-3 py-2 text-gray-600">Hora Extra (50%)</td>
+                                        <td class="px-3 py-2 text-center text-gray-500"
                                             x-text="form.horas_extras_totais + 'h'"></td>
                                         <td class="px-3 py-2 text-right font-medium"
                                             x-text="formatMoney(totalHorasExtrasNormais)"></td>
                                     </tr>
                                     <tr x-show="form.horas_sabado > 0">
                                         <td class="px-3 py-2 text-gray-600">Sábado (50%)</td>
-                                        <td class="px-3 py-2 text-right text-gray-500" x-text="form.horas_sabado + 'h'">
+                                        <td class="px-3 py-2 text-center text-gray-500" x-text="form.horas_sabado + 'h'">
                                         </td>
                                         <td class="px-3 py-2 text-right font-medium"
                                             x-text="formatMoney(totalHorasSabado)"></td>
                                     </tr>
                                     <tr x-show="form.horas_feriado > 0">
-                                        <td class="px-3 py-2 text-gray-600">Feriado (100%)</td>
-                                        <td class="px-3 py-2 text-right text-gray-500" x-text="form.horas_feriado + 'h'">
+                                        <td class="px-3 py-2 text-gray-600">Feriado 100%</td>
+                                        <td class="px-3 py-2 text-center text-gray-500" x-text="form.horas_feriado + 'h'">
                                         </td>
                                         <td class="px-3 py-2 text-right font-medium"
                                             x-text="formatMoney(totalHorasFeriado)"></td>
                                     </tr>
                                     <tr>
                                         <td class="px-3 py-2 text-gray-600">DSR Hora Extra</td>
-                                        <td class="px-3 py-2 text-right text-gray-400">-</td>
+                                        <td class="px-3 py-2 text-center text-gray-400">-</td>
                                         <td class="px-3 py-2 text-right font-medium text-indigo-700"
                                             x-text="formatMoney(dsrHoraExtra)"></td>
                                     </tr>
                                     <tr x-show="salarioFamilia > 0">
                                         <td class="px-3 py-2 text-gray-600">Salário Família</td>
-                                        <td class="px-3 py-2 text-right text-gray-400">-</td>
+                                        <td class="px-3 py-2 text-center text-gray-400">-</td>
                                         <td class="px-3 py-2 text-right font-medium" x-text="formatMoney(salarioFamilia)">
                                         </td>
                                     </tr>
                                     <tr x-show="form.gratificacao_feriado > 0">
                                         <td class="px-3 py-2 text-gray-600">Gratificação</td>
-                                        <td class="px-3 py-2 text-right text-gray-400">-</td>
+                                        <td class="px-3 py-2 text-center text-gray-400">-</td>
                                         <td class="px-3 py-2 text-right font-medium"
                                             x-text="formatMoney(form.gratificacao_feriado)"></td>
                                     </tr>
                                     <tr x-show="arredondamentoProvento != 0">
-                                        <td class="px-3 py-2 text-gray-600">Arredondamento</td>
-                                        <td class="px-3 py-2 text-right text-gray-400">-</td>
+                                        <td class="px-3 py-2 text-gray-600">Arred. Provento</td>
+                                        <td class="px-3 py-2 text-center text-gray-400">-</td>
                                         <td class="px-3 py-2 text-right font-medium"
                                             x-text="formatMoney(arredondamentoProvento)"></td>
                                     </tr>
+                                    <tr class="bg-green-50">
+                                        <td colspan="2" class="px-3 py-2 font-semibold text-green-800">TOTAL PROVENTOS
+                                        </td>
+                                        <td class="px-3 py-2 text-right font-bold text-green-800"
+                                            x-text="formatMoney(totalProventos)"></td>
+                                    </tr>
 
                                     {{-- Descontos --}}
-                                    <tr class="bg-red-50">
+                                    <tr class="bg-gray-50">
                                         <td colspan="3" class="px-3 py-2 text-xs font-semibold text-red-700">📉
-                                            DESCONTOS</td>
+                                            DESCONTOS
+                                        </td>
                                     </tr>
                                     <tr>
-                                        <td class="px-3 py-2 text-gray-600">INSS</td>
-                                        <td class="px-3 py-2 text-right text-gray-400">-</td>
+                                        <td class="px-3 py-2 text-gray-600">Desconto INSS</td>
+                                        <td class="px-3 py-2 text-center text-gray-400">-</td>
                                         <td class="px-3 py-2 text-right font-medium text-red-700"
                                             x-text="formatMoney(inss)"></td>
                                     </tr>
                                     <tr x-show="form.vale_dia_20 > 0">
-                                        <td class="px-3 py-2 text-gray-600">Vale Dia 20</td>
-                                        <td class="px-3 py-2 text-right text-gray-400">-</td>
+                                        <td class="px-3 py-2 text-gray-600">Dia 20 Vale</td>
+                                        <td class="px-3 py-2 text-center text-gray-400">-</td>
                                         <td class="px-3 py-2 text-right font-medium text-red-700"
                                             x-text="formatMoney(form.vale_dia_20)"></td>
                                     </tr>
                                     <tr x-show="form.vale_extra > 0">
                                         <td class="px-3 py-2 text-gray-600">Vale Extra</td>
-                                        <td class="px-3 py-2 text-right text-gray-400">-</td>
+                                        <td class="px-3 py-2 text-center text-gray-400">-</td>
                                         <td class="px-3 py-2 text-right font-medium text-red-700"
                                             x-text="formatMoney(form.vale_extra)"></td>
                                     </tr>
                                     <tr x-show="faltasValor > 0">
                                         <td class="px-3 py-2 text-gray-600">Faltas</td>
-                                        <td class="px-3 py-2 text-right text-gray-500"
+                                        <td class="px-3 py-2 text-center text-gray-500"
                                             x-text="form.faltas_dias + ' dias'"></td>
                                         <td class="px-3 py-2 text-right font-medium text-red-700"
                                             x-text="formatMoney(faltasValor)"></td>
                                     </tr>
                                     <tr x-show="dsrFaltas > 0">
-                                        <td class="px-3 py-2 text-gray-600">DSR Faltas</td>
-                                        <td class="px-3 py-2 text-right text-gray-400">-</td>
+                                        <td class="px-3 py-2 text-gray-600">D.S.R Faltas</td>
+                                        <td class="px-3 py-2 text-center text-gray-400">-</td>
                                         <td class="px-3 py-2 text-right font-medium text-red-700"
                                             x-text="formatMoney(dsrFaltas)"></td>
                                     </tr>
                                     <tr x-show="arredondamentoDesconto != 0">
-                                        <td class="px-3 py-2 text-gray-600">Arredondamento</td>
-                                        <td class="px-3 py-2 text-right text-gray-400">-</td>
+                                        <td class="px-3 py-2 text-gray-600">Arred. Desc.</td>
+                                        <td class="px-3 py-2 text-center text-gray-400">-</td>
                                         <td class="px-3 py-2 text-right font-medium text-red-700"
                                             x-text="formatMoney(arredondamentoDesconto)"></td>
                                     </tr>
-                                    {{-- 5º Dia Útil --}}
-                                    <tr>
-                                        <td class="px-3 py-2 text-gray-600">📅 5º Dia Útil</td>
-                                        <td colspan="2" class="px-3 py-2 text-right font-medium"
-                                            x-text="quintoDiaUtil || '-'"></td>
+                                    <tr class="bg-red-50">
+                                        <td colspan="2" class="px-3 py-2 font-semibold text-red-800">TOTAL DESCONTOS
+                                        </td>
+                                        <td class="px-3 py-2 text-right font-bold text-red-800"
+                                            x-text="formatMoney(totalDescontos)"></td>
+                                    </tr>
+
+                                    {{-- Líquido --}}
+                                    <tr class="bg-blue-100">
+                                        <td colspan="2" class="px-3 py-2 font-semibold text-blue-800">💰 SALÁRIO
+                                            LÍQUIDO
+                                        </td>
+                                        <td class="px-3 py-2 text-right font-bold text-blue-800 text-lg"
+                                            x-text="formatMoney(salarioLiquido)"></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -357,9 +397,9 @@
                     </div>
 
                     {{-- Botões --}}
-                    <div class="flex justify-end gap-3">
+                    <div class="flex justify-end space-x-2">
                         <a href="{{ route('rh.folha-pagamento.show', $folhaPagamento->id) }}"
-                            class="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-semibold">
+                            class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 font-medium">
                             Cancelar
                         </a>
                         <button type="submit"
@@ -389,22 +429,43 @@
             };
 
             return {
-                funcionario: folhaData.funcionario || {},
+                // Funcionário
+                funcionario: {
+                    id: folhaData.funcionario?.id || null,
+                    nome_completo: folhaData.funcionario?.nome_completo || '',
+                    cpf: folhaData.funcionario?.cpf || '',
+                    local_trabalho: folhaData.funcionario?.contrato?.local_trabalho || '',
+                    tipo_contratacao: folhaData.funcionario?.contrato?.tipo_contratacao || 'CLT',
+                    cargo: folhaData.funcionario?.cargo?.titulo || '',
+                    salario_base: parseFloat(folhaData?.salario_base) || 0,
+                    carga_horaria_semanal: parseInt(folhaData.funcionario?.contrato?.carga_horaria_semanal) || 44,
+                    qtd_dependentes_salario_familia: parseInt(folhaData.funcionario
+                        ?.qtd_dependentes_salario_familia) || 0,
+                },
 
+                competencia: folhaData.competencia || '',
+                competenciaDisplay: folhaData.competencia ? new Date(folhaData.competencia).toLocaleDateString(
+                    'pt-BR', {
+                        month: '2-digit',
+                        year: 'numeric'
+                    }) : '',
+
+                // Formulário
                 form: {
-                    salario_base: parseFloat(folhaData.salario_base) || 0,
+                    salario_base: parseFloat(folhaData.salario_base) || parseFloat(folhaData.funcionario
+                        ?.salario_base) || 0,
                     horas_extras_totais: getLancamento('hora_extra_normal'),
                     horas_sabado: getLancamento('hora_extra_sabado'),
                     horas_feriado: getLancamento('hora_extra_feriado'),
                     faltas_dias: getLancamento('falta'),
-                    vale_dia_20: getLancamentoValor('vale_dia_20'), //parseFloat(folhaData.vale_dia_20) || 0,
-                    vale_extra: getLancamentoValor('vale_extra'), //parseFloat(folhaData.vale_extra) || 0,
-                    gratificacao_feriado: getLancamentoValor(
-                        'gratificacao'), //parseFloat(folhaData.gratificacao_feriado) || 0,
+                    vale_dia_20: getLancamentoValor('vale_dia_20'),
+                    vale_extra: getLancamentoValor('vale_extra'),
+                    gratificacao_feriado: getLancamentoValor('gratificacao'),
                     status: folhaData.status || 'aberta',
                     observacao: folhaData.observacao || '',
                 },
 
+                // Valores calculados
                 diasUteis: 0,
                 domingosFeriados: 0,
                 valorHoraNormal: 0,
@@ -415,18 +476,40 @@
                 dsrFaltas: parseFloat(folhaData.dsr_faltas) || 0,
                 arredondamentoProvento: parseFloat(folhaData.arredondamento_provento) || 0,
                 arredondamentoDesconto: parseFloat(folhaData.arredondamento_desconto) || 0,
-                quintoDiaUtil: '',
+                quintoDiaUtil: folhaData.quinto_dia_util || '',
 
-                init() {
+                // ─── INIT ──────────────────────────────────
+                initEdit() {
+                    // CORREÇÃO: Formata a competência para YYYY-MM
+                    if (this.competencia) {
+                        // Se for string ISO (ex: 2026-06-01T04:00:00.000000Z)
+                        if (this.competencia.includes('T')) {
+                            const date = new Date(this.competencia);
+                            if (!isNaN(date)) {
+                                const year = date.getFullYear();
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                this.competencia = `${year}-${month}`;
+                            }
+                        } else {
+                            // Se já estiver no formato YYYY-MM, apenas extrai para display
+                            const parts = this.competencia.split('-');
+                            if (parts.length === 2) {
+                                this.competenciaDisplay = new Date(this.competencia + '-01').toLocaleDateString('pt-BR', {
+                                    month: '2-digit',
+                                    year: 'numeric'
+                                });
+                            }
+                        }
+                    }
                     this.calcularDiasUteis();
                 },
 
+                // ─── CÁLCULOS ───────────────────────────────
                 async calcularDiasUteis() {
-                    const competencia = folhaData.competencia;
-                    if (!competencia) return;
+                    if (!this.competencia) return;
 
                     try {
-                        const data = new Date(competencia);
+                        const data = new Date(this.competencia);
                         const ano = data.getFullYear();
                         const mes = String(data.getMonth() + 1).padStart(2, '0');
                         const comp = `${ano}-${mes}`;
@@ -456,36 +539,79 @@
                     this.calcularArredondamentos();
                 },
 
-                calcularInss(salario) {
-                    let inss = 0;
-                    let restante = salario;
+                // calcularInss(salario) {
+                //     let inss = 0;
+                //     let restante = salario;
 
-                    const faixas = [{
-                            limite: 1412.00,
-                            aliquota: 0.075
-                        },
-                        {
-                            limite: 2666.68,
-                            aliquota: 0.09
-                        },
-                        {
-                            limite: 4000.03,
-                            aliquota: 0.12
-                        },
-                        {
-                            limite: 7786.02,
-                            aliquota: 0.14
-                        },
-                    ];
+                //     const faixas = [{
+                //             limite: 1412.00,
+                //             aliquota: 0.075
+                //         },
+                //         {
+                //             limite: 2666.68,
+                //             aliquota: 0.09
+                //         },
+                //         {
+                //             limite: 4000.03,
+                //             aliquota: 0.12
+                //         },
+                //         {
+                //             limite: 7786.02,
+                //             aliquota: 0.14
+                //         },
+                //     ];
 
-                    for (const faixa of faixas) {
-                        const valor = Math.min(restante, faixa.limite);
-                        inss += valor * faixa.aliquota;
-                        restante -= valor;
-                        if (restante <= 0) break;
+                //     for (const faixa of faixas) {
+                //         const valor = Math.min(restante, faixa.limite);
+                //         inss += valor * faixa.aliquota;
+                //         restante -= valor;
+                //         if (restante <= 0) break;
+                //     }
+
+                //     this.inss = Math.round(inss * 100) / 100;
+                // },
+
+                async calcularInss(salario) {
+                    if (!salario || salario <= 0) {
+                        this.inss = 0;
+                        return;
                     }
 
-                    this.inss = Math.round(inss * 100) / 100;
+                    console.log('Calculating INSS for salary:', salario, 'and competencia:', this.competencia);
+
+                    try {
+                        const response = await fetch('{{ route('rh.api.calcular-inss') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                funcionario_id: this.funcionario.id,
+                                salario: salario,
+                                competencia: this.competencia,
+                            }),
+                        });
+
+                        const data = await response.json();
+
+                        console.log(data); // Adicione este log para depuração
+                        console.log('Data received from INSS API:', data.message);
+
+                        if (!data.success) {
+                            console.error(data.message);
+                            this.inss = 0;
+                            return;
+                        }
+
+                        this.inss = data.inss;
+                        this.detalhamentoInss = data.detalhamento;
+
+                    } catch (error) {
+                        console.error('Erro ao calcular INSS:', error);
+                        this.inss = 0;
+                    }
                 },
 
                 calcularSalarioFamilia(salario) {
@@ -524,6 +650,7 @@
                     }
                 },
 
+                // ─── GETTERS COMPUTADOS ─────────────────────
                 get totalHorasExtrasNormais() {
                     return Math.round(this.form.horas_extras_totais * this.valorHoraExtra * 100) / 100;
                 },
@@ -576,6 +703,7 @@
                     return Math.round((this.totalProventos - this.totalDescontos) * 100) / 100;
                 },
 
+                // ─── HELPERS ────────────────────────────────
                 formatMoney(value) {
                     if (value === null || value === undefined) return 'R$ 0,00';
                     return 'R$ ' + parseFloat(value).toLocaleString('pt-BR', {

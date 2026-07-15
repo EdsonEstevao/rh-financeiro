@@ -1,14 +1,32 @@
 @extends('layouts.app')
 
-@section('header')
-    <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-        Nova Tabela INSS
-    </h2>
-@endsection
-
 @section('content')
     <div class="py-12">
+
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            {{-- Cabeçalho --}}
+            <div class="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <div class="flex items-center gap-2 mb-1 text-sm text-gray-500">
+                        <a href="{{ route('rh.faixa-inss.index') }}" class="hover:text-indigo-600">Tabelas INSS</a>
+                        <span>/</span>
+                        <span class="font-medium text-gray-700">Nova Tabela</span>
+                    </div>
+                    <h1 class="text-2xl font-bold text-gray-900">Cadastrar Tabela INSS</h1>
+                    <p class="mt-1 text-sm text-gray-500">Preencha os dados da nova tabela. Campos marcados com <span
+                            class="text-red-500">*</span> são obrigatórios.</p>
+                </div>
+
+                <a href="{{ route('rh.faixa-inss.index') }}"
+                    class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 self-start sm:self-auto">
+                    <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    Voltar
+                </a>
+            </div>
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 bg-white border-b border-gray-200">
                     <form method="POST" action="{{ route('rh.faixa-inss.store') }}" x-data="{
@@ -77,6 +95,32 @@
                             <x-input-error :messages="$errors->get('descricao')" class="mt-2" />
                         </div>
 
+                        {{-- Salário Família --}}
+                        <div class="mb-6">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">💰 Salário Família</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <x-input-label for="limite_salario_familia" value="Teto para direito (R$)" />
+                                    <x-text-input id="limite_salario_familia" name="limite_salario_familia" type="number"
+                                        step="0.01" min="0" class="mt-1 block w-full"
+                                        value="{{ old('limite_salario_familia', $tabela->limite_salario_familia ?? '') }}"
+                                        required />
+                                    <p class="mt-1 text-xs text-gray-500">Valor atual: R$ 1.980,38</p>
+                                    <x-input-error :messages="$errors->get('limite_salario_familia')" class="mt-2" />
+                                </div>
+                                <div>
+                                    <x-input-label for="valor_salario_familia" value="Cota por dependente (R$)" />
+                                    <x-text-input id="valor_salario_familia" name="valor_salario_familia" type="number"
+                                        step="0.01" min="0" class="mt-1 block w-full"
+                                        value="{{ old('valor_salario_familia', $tabela->valor_salario_familia ?? '') }}"
+                                        required />
+                                    <p class="mt-1 text-xs text-gray-500">Valor atual: R$ 67,54</p>
+                                    <x-input-error :messages="$errors->get('valor_salario_familia')" class="mt-2" />
+                                </div>
+                            </div>
+                        </div>
+
+
                         <!-- Faixas -->
                         <div class="mb-6">
                             <div class="flex justify-between items-center mb-4">
@@ -93,7 +137,8 @@
                                         <tr>
                                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                                                 Ordem</th>
-                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Teto
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                Teto
                                                 (R$) *</th>
                                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                                                 Alíquota (%) *</th>

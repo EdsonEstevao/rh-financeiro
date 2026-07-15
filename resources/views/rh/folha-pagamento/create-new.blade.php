@@ -110,7 +110,7 @@
                                     </svg>
                                     <p class="text-sm text-yellow-700" x-text="mensagemErro"></p>
                                 </div>
-                                <a :href="`/rh/folha-pagamento/${funcionario.id}/edit`"
+                                <a :href="`/rh/folha-pagamento/${folha.id}/edit`"
                                     class="mt-2 inline-flex items-center text-sm text-yellow-800 hover:text-yellow-900">
                                     ✏️ Editar folha existente →
                                 </a>
@@ -406,6 +406,8 @@
                 // Funcionário selecionado
                 funcionario: {},
                 competencia: '',
+                // Folha de pagamento existente
+                folha: {},
 
                 // Formulário (dados de entrada)
                 form: {
@@ -738,8 +740,11 @@
                         );
                         const data = await response.json();
 
+
+
                         if (data.existe) {
                             this.folhaExistente = true;
+                            this.folha = data.folha;
                             this.mensagemErro =
                                 `⚠️ Já existe uma folha para ${this.funcionario.nome_completo} na competência ${this.competencia}!`;
                         } else {

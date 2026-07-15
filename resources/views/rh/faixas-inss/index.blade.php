@@ -8,6 +8,23 @@
 @section('content')
     <div class="py-12" x-data="inssIndex({{ Js::from($faixasPorTabela) }})">
         <div class="w-full mx-auto sm:px-6 lg:px-8">
+            {{-- Cabeçalho Index Lista Tabela INSS --}}
+            <div class="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Listar Tabela INSS</h1>
+                    <p class="mt-1 text-sm text-gray-500">Visualize e edite as tabelas de INSS.</p>
+                </div>
+
+                <a href="{{ route('rh.faixa-inss.index') }}"
+                    class="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 self-start sm:self-auto">
+                    <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    Voltar
+                </a>
+            </div>
             <!-- Mensagens -->
             @if (session('success'))
                 <div x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 5000)"
@@ -61,8 +78,16 @@
                                     <th scope="col"
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Faixas</th>
+                                    <!-- Salario Familia -->
                                     <th scope="col"
-                                        class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Limite Salário Família</th>
+                                    <!-- Valor Salário Família -->
+                                    <th scope="col"
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Valor Salário Família</th>
+                                    <th scope="col"
+                                        class="px-6 text-center py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Ações</th>
                                 </tr>
                             </thead>
@@ -97,28 +122,39 @@
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                             {{ $tabela->faixas->count() }} faixa(s)
                                         </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                            {{ $tabela->limite_salario_familia ? 'R$ ' . number_format($tabela->limite_salario_familia, 2, ',', '.') : '-' }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                            {{ $tabela->valor_salario_familia ? 'R$ ' . number_format($tabela->valor_salario_familia, 2, ',', '.') : '-' }}
+                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button type="button" @click="openModal({{ $tabela->id }})"
-                                                class="text-blue-600 hover:text-blue-900" title="Visualizar faixas">
-                                                👁 Faixas
-                                            </button>
-                                            @can('faixa-inss.edit')
-                                                <a href="{{ route('rh.faixa-inss.edit', $tabela) }}"
-                                                    class="text-indigo-600 hover:text-indigo-900 mr-3">
-                                                    Editar
-                                                </a>
-                                            @endcan
-                                            @can('faixa-inss.delete')
-                                                <form action="{{ route('rh.faixa-inss.destroy', $tabela) }}" method="POST"
-                                                    class="inline"
-                                                    onsubmit="return confirm('Tem certeza que deseja remover esta tabela?');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="text-red-600 hover:text-red-900">
-                                                        Remover
-                                                    </button>
-                                                </form>
-                                            @endcan
+                                            <div class="flex justify-center items-center gap-3">
+                                                <button type="button" @click="openModal({{ $tabela->id }})"
+                                                    class="text-blue-600 hover:text-blue-900" title="Visualizar faixas">
+                                                    👁 Faixas
+                                                </button>
+
+                                                @can('faixa-inss.edit')
+                                                    <a href="{{ route('rh.faixa-inss.edit', $tabela) }}"
+                                                        class="text-indigo-600 hover:text-indigo-900 block"
+                                                        title="Editar tabela">
+                                                        Editar
+                                                    </a>
+                                                @endcan
+
+                                                @can('faixa-inss.delete')
+                                                    <form action="{{ route('rh.faixa-inss.destroy', $tabela) }}" method="POST"
+                                                        class="flex self-center m-0"
+                                                        onsubmit="return confirm('Tem certeza que deseja remover esta tabela?');">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="text-red-600 hover:text-red-900">
+                                                            Remover
+                                                        </button>
+                                                    </form>
+                                                @endcan
+                                            </div>
                                         </td>
                                     </tr>
                                 @empty

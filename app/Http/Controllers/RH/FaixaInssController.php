@@ -60,6 +60,8 @@ class FaixaInssController extends Controller
             'faixas.*.teto'   => 'required|numeric|min:0',
             'faixas.*.aliquota' => 'required|numeric|min:0|max:1',
             'faixas.*.deducao'  => 'nullable|numeric|min:0',
+            'limite_salario_familia' => ['required', 'numeric', 'min:0'],
+            'valor_salario_familia'  => ['required', 'numeric', 'min:0'],
         ], [
             'faixas.required' => 'Adicione pelo menos uma faixa.',
         ]);
@@ -77,6 +79,8 @@ class FaixaInssController extends Controller
                 'ativo'           => $request->boolean('ativo'),
                 'vigencia_inicio' => $validated['vigencia_inicio'],
                 'vigencia_fim'    => $validated['vigencia_fim'] ?? null,
+                'limite_salario_familia' => $validated['limite_salario_familia'],
+                'valor_salario_familia'  => $validated['valor_salario_familia'],
             ]);
 
             foreach ($validated['faixas'] as $faixa) {
@@ -139,6 +143,8 @@ class FaixaInssController extends Controller
             'faixas.*.teto'   => 'required|numeric|min:0',
             'faixas.*.aliquota' => 'required|numeric|min:0|max:1',
             'faixas.*.deducao'  => 'nullable|numeric|min:0',
+            'limite_salario_familia' => ['required', 'numeric', 'min:0'],
+            'valor_salario_familia'  => ['required', 'numeric', 'min:0'],
         ], [
             'faixas.required' => 'Adicione pelo menos uma faixa.',
         ]);
@@ -155,6 +161,8 @@ class FaixaInssController extends Controller
                 'ativo'           => $request->boolean('ativo'),
                 'vigencia_inicio' => $validated['vigencia_inicio'],
                 'vigencia_fim'    => $validated['vigencia_fim'] ?? null,
+                'limite_salario_familia' => $validated['limite_salario_familia'],
+                'valor_salario_familia'  => $validated['valor_salario_familia'],
             ]);
 
             // Remove faixas antigas e recria

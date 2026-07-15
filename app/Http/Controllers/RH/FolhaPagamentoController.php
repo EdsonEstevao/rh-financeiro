@@ -8,7 +8,7 @@ use Illuminate\View\View;
 use Illuminate\Support\Facades\{Auth, Log};
 use Illuminate\Validation\ValidationException;
 
-use App\Services\RH\{CalculoTrabalhistaService, CalculoTributarioService, FolhaPagamentoService};
+use App\Services\RH\{CalculoTrabalhistaService, FolhaPagamentoService};
 use App\Models\Domain\RH\{Cargo, FolhaLancamento, FolhaPagamento, Funcionario, FuncionarioContrato};
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RH\FolhaPagamentoRequest;
@@ -72,6 +72,8 @@ class FolhaPagamentoController extends Controller
 
         // Pega os IDs para buscar os lançamentos relacionados
         $folhasIds = $query->pluck('id');
+
+
 
         // Se não tem folhas, retorna zeros
         if ($folhasIds->isEmpty()) {
@@ -276,7 +278,8 @@ class FolhaPagamentoController extends Controller
 
         $folhaPagamento = $folha->load([
                     'funcionario',
-
+                    'funcionario.contrato',
+                    'funcionario.cargo',
 
                     ]);
         // dd($folha);
@@ -300,7 +303,9 @@ class FolhaPagamentoController extends Controller
     {
         $funcionarios = Funcionario::orderBy('nome_completo', 'asc')->get(['id', 'nome_completo']);
 
-        $folhaPagamento = $folha->load('funcionario');
+
+        $folhaPagamento = $folha->load('funcionario.contrato', 'funcionario.cargo');
+        // dd($funcionarios, $folhaPagamento);
 
         return view('rh.folha-pagamento.edit-new', compact('folhaPagamento', 'funcionarios'));
     }
@@ -741,7 +746,7 @@ class FolhaPagamentoController extends Controller
     // }
     public function resumo(Request $request)
     {
-        $competencia = $request->get('competencia', now()->format('Y-m'));
+        $competencia = $request->input('competencia', now()->format('Y-m'));
 
         $folhas = FolhaPagamento::with([
                 'funcionario.departamento',
@@ -1261,9 +1266,15 @@ class FolhaPagamentoController extends Controller
 
         $competenciaDate = Carbon::createFromFormat('Y-m', $competencia)->startOfMonth()->format('Y-m-d');
 
-        $existe = FolhaPagamento::query()->where('funcionario_id', $funcionarioId)
-            ->where('competencia', $competenciaDate)
-            ->exists();
+        $query = FolhaPagamento::query()->where('funcionario_id', $funcionarioId)
+            ->where('competencia', $competenciaDate);
+        $existe = $query->exists();
+
+        $folha = $query->first();
+
+        if ($existe && $folha) {
+            return response()->json(['existe' => true, 'folha' => $folha]);
+        }
 
         return response()->json(['existe' => $existe]);
     }

@@ -103,7 +103,7 @@ class FolhaLancamentoService
                 'tipo' => FolhaLancamento::TIPO_SALARIO_FAMILIA,
                 'descricao' => 'Salário Família',
                 'quantidade' => $funcionario->qtd_dependentes_salario_familia ?? 0,
-                'valor_unitario' => 62.04,
+                'valor_unitario' =>  $this->calculadora->getValorSalarioFamilia(), //67.54,//62.04,
                 'percentual_acrescimo' => 0,
                 'valor_total' => $salarioFamilia,
             ]));

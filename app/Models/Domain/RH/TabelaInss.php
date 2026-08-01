@@ -64,7 +64,7 @@ class TabelaInss extends Model
     }
 
     // ─── Cálculo ───────────────────────────────
-    public function calcular(float $salario): array
+    public function calcularOld(float $salario): array
     {
         $inss = 0;
         $anterior = 0;
@@ -91,6 +91,55 @@ class TabelaInss extends Model
 
         $inss = round($inss, 2);
         $aliquotaEfetiva = $salario > 0 ? round(($inss / $salario) * 100, 2) : 0;
+
+        return [
+            'inss' => $inss,
+            'aliquota_efetiva' => $aliquotaEfetiva,
+            'detalhamento' => $detalhamento,
+        ];
+    }
+
+    public function calcular(float $salario): array
+    {
+        $inss = 0;
+        $faixaAplicada = null;
+        $detalhamento = [];
+        
+        // 🆕 Converte para array ou usa o count() da Collection
+        $totalFaixas = $this->faixas->count();
+        $contador = 0;
+
+        foreach ($this->faixas as $faixa) {
+            $contador++;
+            $teto = (float) $faixa->teto;
+            
+            // A última faixa é quando o contador chega ao total
+            $ultimaFaixa = ($contador === $totalFaixas);
+            
+            if ($salario <= $teto || $ultimaFaixa) {
+                $faixaAplicada = $faixa;
+                $aliquota = (float) $faixa->aliquota;
+                $deducao = (float) ($faixa->deducao ?? 0);
+                
+                // Método da dedução (alíquota única)
+                $inss = ($salario * $aliquota) - $deducao;
+                
+                $detalhamento[] = [
+                    'ordem' => $faixa->ordem,
+                    'teto' => $teto,
+                    'aliquota' => $aliquota * 100,
+                    'deducao' => $deducao,
+                    'base_calculo' => $salario,
+                    'valor' => round($inss, 2),
+                ];
+                break;
+            }
+        }
+
+        // Trunca em 2 casas
+        $inss = floor($inss * 100) / 100;
+        
+        $aliquotaEfetiva = $salario > 0 ? round(($inss / $salario) * 100, 4) : 0;
 
         return [
             'inss' => $inss,

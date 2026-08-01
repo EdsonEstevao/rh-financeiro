@@ -77,6 +77,11 @@ class FuncionarioStoreRequest extends FormRequest
             'horario_almoco_inicio' => ['required', 'date_format:H:i'],
             'horario_almoco_fim' => ['required', 'date_format:H:i'],
 
+             // Dias de trabalho
+            'dias_trabalho'       => 'nullable|array|min:1',
+            'dias_trabalho.*'     => 'integer|in:1,2,3,4,5,6',
+            'dias_trabalho_json'  => 'nullable|json',
+
             // Benefícios
             'vale_transporte' => ['sometimes', 'boolean'],
             'valor_vale_transporte' => ['nullable', 'numeric', 'min:0'],

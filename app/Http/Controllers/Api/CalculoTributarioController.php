@@ -21,11 +21,83 @@ class CalculoTributarioController extends Controller
     /**
      * Calcula o INSS com base na tabela vigente.
      */
+    // public function calcularInss(CalcularInssRequest $request): JsonResponse
+    // {
+    //     try {
+    //         $salario = (float) $request->input('salario');
+    //         $competencia = $request->input('competencia');
+
+    //         $resultado = $this->calculoService->calcularInss($salario, $competencia);
+
+    //         return response()->json([
+    //             'success' => true,
+    //             'inss' => $resultado['inss'],
+    //             'aliquota_efetiva' => $resultado['aliquota_efetiva'],
+    //             'detalhamento' => $resultado['detalhamento'],
+    //         ]);
+
+    //     } catch (RuntimeException $e) {
+    //         Log::warning('Cálculo INSS: ' . $e->getMessage(), [
+    //             'user_id' => Auth::id(), //auth()->id(),
+    //             'payload' => $request->validated(),
+    //         ]);
+
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => $e->getMessage(),
+    //         ], 422);
+
+    //     } catch (Throwable $e) {
+    //         Log::error('Erro inesperado ao calcular INSS', [
+    //             'error' => $e->getMessage(),
+    //             'user_id' => Auth::id(), //auth()->id(),
+    //             'payload' => $request->validated(),
+    //         ]);
+
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Erro ao calcular o INSS. Tente novamente.',
+    //         ], 500);
+    //     }
+    // }
+
     public function calcularInss(CalcularInssRequest $request): JsonResponse
     {
         try {
+            $funcionarioId = $request->input('funcionario_id');
             $salario = (float) $request->input('salario');
             $competencia = $request->input('competencia');
+
+            // 🆕 Verifica se deve aplicar INSS
+            if ($funcionarioId) {
+                $funcionario = Funcionario::with('contrato')->find($funcionarioId);
+                if ($funcionario && $funcionario->contrato) {
+                    $tipoContrato = $funcionario->contrato->tipo_contrato;
+                    $tipoContratacao = $funcionario->contrato->tipo_contratacao;
+
+                    // Estagiário e aprendiz não pagam INSS
+                    if (in_array($tipoContrato, ['estagio', 'aprendiz'])) {
+                        return response()->json([
+                            'success' => true,
+                            'inss' => 0,
+                            'aliquota_efetiva' => 0,
+                            'detalhamento' => [],
+                            'isento' => true,
+                        ]);
+                    }
+
+                    // PJ e autônomo não pagam INSS
+                    if (in_array($tipoContratacao, ['pj', 'autonomo'])) {
+                        return response()->json([
+                            'success' => true,
+                            'inss' => 0,
+                            'aliquota_efetiva' => 0,
+                            'detalhamento' => [],
+                            'isento' => true,
+                        ]);
+                    }
+                }
+            }
 
             $resultado = $this->calculoService->calcularInss($salario, $competencia);
 
@@ -34,6 +106,7 @@ class CalculoTributarioController extends Controller
                 'inss' => $resultado['inss'],
                 'aliquota_efetiva' => $resultado['aliquota_efetiva'],
                 'detalhamento' => $resultado['detalhamento'],
+                'isento' => false,
             ]);
 
         } catch (RuntimeException $e) {

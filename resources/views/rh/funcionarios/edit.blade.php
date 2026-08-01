@@ -561,6 +561,9 @@
                                 @enderror
                             </div>
 
+
+
+
                             {{-- Dependentes salário família (isso na real está no contrato no seu schema) --}}
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Qtd. Dependentes Salário
@@ -597,6 +600,80 @@
                                         class="block w-full mt-1 text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
                                 </div>
                             @endforeach
+                        </div>
+                    </div>
+
+                    {{-- ============================================================ --}}
+                    {{-- DIAS DE TRABALHO (ADICIONAR APÓS HORÁRIOS) --}}
+                    {{-- ============================================================ --}}
+                    <div>
+                        <h2 class="pb-3 mb-5 text-base font-semibold text-gray-900 border-b border-gray-100">
+                            Dias de Trabalho
+                        </h2>
+
+                        <div x-data="diasTrabalhoForm()" class="space-y-3">
+                            <p class="text-sm text-gray-500">Selecione os dias da semana em que o funcionário trabalha:</p>
+
+                            <div class="flex flex-wrap gap-3">
+                                @php
+                                    $diasSemana = [
+                                        1 => ['label' => 'Segunda', 'short' => 'SEG'],
+                                        2 => ['label' => 'Terça', 'short' => 'TER'],
+                                        3 => ['label' => 'Quarta', 'short' => 'QUA'],
+                                        4 => ['label' => 'Quinta', 'short' => 'QUI'],
+                                        5 => ['label' => 'Sexta', 'short' => 'SEX'],
+                                        6 => ['label' => 'Sábado', 'short' => 'SAB'],
+                                    ];
+                                @endphp
+
+                                @foreach ($diasSemana as $valor => $dia)
+                                    <label
+                                        class="relative flex items-center gap-2 px-4 py-3 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:border-indigo-300"
+                                        :class="diasSelecionados.includes({{ $valor }}) ?
+                                            'border-indigo-500 bg-indigo-50 text-indigo-700' :
+                                            'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'">
+                                        <input type="checkbox" name="dias_trabalho[]" value="{{ $valor }}"
+                                            x-model="diasSelecionados" class="sr-only">
+                                        <div class="flex flex-col items-center">
+                                            <span class="text-xs font-bold">{{ $dia['short'] }}</span>
+                                            <span class="text-[10px] opacity-70">{{ $dia['label'] }}</span>
+                                        </div>
+                                        <div x-show="diasSelecionados.includes({{ $valor }})"
+                                            class="absolute -top-1.5 -right-1.5 w-4 h-4 bg-indigo-500 rounded-full flex items-center justify-center">
+                                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                                    d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </div>
+                                    </label>
+                                @endforeach
+                            </div>
+
+                            {{-- Presets rápidos --}}
+                            <div class="flex gap-2 mt-2">
+                                <button type="button" @click="diasSelecionados = [1,2,3,4,5]"
+                                    class="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors">
+                                    Seg a Sex
+                                </button>
+                                <button type="button" @click="diasSelecionados = [1,2,3,4,5,6]"
+                                    class="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors">
+                                    Seg a Sáb
+                                </button>
+                                <button type="button" @click="diasSelecionados = []"
+                                    class="px-3 py-1 text-xs font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors">
+                                    Limpar
+                                </button>
+                            </div>
+
+                            <input type="hidden" name="dias_trabalho_json" :value="JSON.stringify(diasSelecionados)">
+
+                            @error('dias_trabalho')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                            @error('dias_trabalho_json')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
                         </div>
                     </div>
                 </div>
@@ -867,6 +944,13 @@
                 removerDependente(index) {
                     this.dependentes.splice(index, 1);
                 }
+            }
+        }
+
+        function diasTrabalhoForm() {
+            return {
+                // diasSelecionados: json(old('dias_trabalho', $funcionario->contrato?->dias_trabalho ?? [1, 2, 3, 4, 5]))
+                diasSelecionados: {{ Js::from(old('dias_trabalho', $funcionario->contrato?->dias_trabalho ?? [1, 2, 3, 4, 5])) }}
             }
         }
     </script>

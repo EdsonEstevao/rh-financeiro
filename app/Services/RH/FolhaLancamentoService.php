@@ -3,7 +3,7 @@
 namespace App\Services\RH;
 
 use Illuminate\Support\{Carbon, Collection};
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\{Auth, Log};
 
 use App\Models\Domain\RH\{FolhaLancamento, FolhaPagamento};
 
@@ -21,12 +21,31 @@ class FolhaLancamentoService
      */
     public function gerarLancamentos(FolhaPagamento $folha, array $dados): Collection
     {
-        // Remove lançamentos antigos
         $folha->lancamentos()->delete();
 
         $funcionario = $folha->funcionario;
         $competencia = Carbon::parse($folha->competencia);
         $valorHora = $this->calculadora->calcularValorHora($funcionario);
+
+         // 🆕 Verifica se deve aplicar INSS         
+        $aplicaINSS = $this->calculadora->deveAplicarINSS($funcionario);
+        $aplicaFGTS = $this->calculadora->deveAplicarFGTS($funcionario);
+
+
+        // 🆕 AQUI - normalize $diasTrabalho antes de usar
+        $diasTrabalhoRaw = $funcionario->contrato?->dias_trabalho;
+
+        // Debug
+        Log::info('Dias trabalho raw:', ['raw' => $diasTrabalhoRaw, 'type' => gettype($diasTrabalhoRaw)]);
+
+        if (is_string($diasTrabalhoRaw)) {
+            $diasTrabalho = json_decode($diasTrabalhoRaw, true);
+        } elseif (is_array($diasTrabalhoRaw)) {
+            $diasTrabalho = $diasTrabalhoRaw;
+        } else {
+            $diasTrabalho = [1, 2, 3, 4, 5];
+        }
+        $diasTrabalho = array_map('intval', $diasTrabalho);
 
         $lancamentos = collect();
 
@@ -36,9 +55,9 @@ class FolhaLancamentoService
             'tipo' => FolhaLancamento::TIPO_SALARIO_BASE,
             'descricao' => 'Salário Base',
             'quantidade' => 1,
-            'valor_unitario' => $funcionario->salario_base,
+            'valor_unitario' => $funcionario->contrato->salario_base,
             'percentual_acrescimo' => 0,
-            'valor_total' => $funcionario->salario_base,
+            'valor_total' => $funcionario->contrato->salario_base,
         ]));
 
         // 2. Horas Extras Normais (PROVENTO)
@@ -51,6 +70,7 @@ class FolhaLancamentoService
                 'valor_unitario' => $valorHora['valor_hora_normal'],
                 'percentual_acrescimo' => 50,
                 'valor_total' => round($dados['horas_extras_totais'] * $valorHora['valor_hora_extra'], 2),
+                // 'valor_total' =>  floor($dados['horas_extras_totais'] * $valorHora['valor_hora_extra'] * 100) / 100, // 🆕 truncado para 2 casas decimais
             ]));
         }
 
@@ -64,25 +84,50 @@ class FolhaLancamentoService
                 'valor_unitario' => $valorHora['valor_hora_normal'],
                 'percentual_acrescimo' => 50,
                 'valor_total' => round($dados['horas_sabado'] * $valorHora['valor_hora_extra'], 2),
+                // 'valor_total' =>  floor($dados['horas_sabado'] * $valorHora['valor_hora_extra'] * 100) / 100, // 🆕 truncado para 2 casas decimais
             ]));
         }
-
+        $valorHEFeriado = 0; // Inicializa a variável para evitar erro de variável indefinida
         // 4. Horas Extras Feriado (PROVENTO)
         if (!empty($dados['horas_feriado']) && $dados['horas_feriado'] > 0) {
+            $valorHEFeriado = round($dados['horas_feriado'] * $valorHora['valor_hora_feriado'], 2);
             $lancamentos->push($this->criarLancamento($folha, [
                 'categoria' => FolhaLancamento::CATEGORIA_PROVENTO,
                 'tipo' => FolhaLancamento::TIPO_HORA_EXTRA_FERIADO,
                 'descricao' => 'Horas Extras Feriado (100%)',
                 'quantidade' => $dados['horas_feriado'],
-                'valor_unitario' => $valorHora['valor_hora_normal'],
+                'valor_unitario' => round($valorHora['valor_hora_normal'], 2),
                 'percentual_acrescimo' => 100,
-                'valor_total' => round($dados['horas_feriado'] * $valorHora['valor_hora_feriado'], 2),
+                'valor_total' => $valorHEFeriado,
             ]));
         }
 
-        // 5. DSR Hora Extra (PROVENTO)
-        $totalHoras = ($dados['horas_extras_totais'] ?? 0) + ($dados['horas_sabado'] ?? 0) + ($dados['horas_feriado'] ?? 0);
-        $dsr = $this->calculadora->calcularDSR($totalHoras, $valorHora['valor_hora_extra'], $competencia);
+        // 5. DSR Hora Extra (PROVENTO) - 🆕 CORRIGIDO
+        // 🆕 Calcula o valor total das horas extras em R$
+        // 5. DSR Hora Extra - totalHEValor com floor
+            $totalHEValor = 0;
+            // if (!empty($dados['horas_extras_totais'])) $totalHEValor += floor($dados['horas_extras_totais'] * $valorHora['valor_hora_extra'] * 100) / 100;
+            // if (!empty($dados['horas_sabado'])) $totalHEValor += floor($dados['horas_sabado'] * $valorHora['valor_hora_extra'] * 100) / 100;
+            // if (!empty($dados['horas_feriado'])) $totalHEValor += $valorHEFeriado;  // 🆕 usa o valor já calculado
+
+
+
+
+
+        if (!empty($dados['horas_extras_totais'])) $totalHEValor += round($dados['horas_extras_totais'] * $valorHora['valor_hora_extra'], 2);
+        if (!empty($dados['horas_sabado'])) $totalHEValor += round($dados['horas_sabado'] * $valorHora['valor_hora_extra'], 2);
+        if (!empty($dados['horas_feriado'])) $totalHEValor += round($dados['horas_feriado'] * $valorHora['valor_hora_feriado'], 2);
+        // ✅ CORRIGIDO
+        // if (!empty($dados['horas_feriado'])) $totalHEValor += floor($dados['horas_feriado'] * $valorHora['valor_hora_feriado'] * 100) / 100;
+
+        // 🆕 DSR: (Valor total HE ÷ dias úteis) × domingos/feriados
+        $diasUteis = $this->calculadora->calcularDiasUteis($competencia, $diasTrabalho);
+        $domingosFeriados = $this->calculadora->calcularDomingosEFeriados($competencia);
+        $dsr = 0;
+        if ($totalHEValor > 0 && $diasUteis > 0) {
+            $dsr = floor(($totalHEValor / $diasUteis) * $domingosFeriados * 100) / 100;
+        }
+
         if ($dsr > 0) {
             $lancamentos->push($this->criarLancamento($folha, [
                 'categoria' => FolhaLancamento::CATEGORIA_PROVENTO,
@@ -103,7 +148,7 @@ class FolhaLancamentoService
                 'tipo' => FolhaLancamento::TIPO_SALARIO_FAMILIA,
                 'descricao' => 'Salário Família',
                 'quantidade' => $funcionario->qtd_dependentes_salario_familia ?? 0,
-                'valor_unitario' =>  $this->calculadora->getValorSalarioFamilia(), //67.54,//62.04,
+                'valor_unitario' => $this->calculadora->getValorSalarioFamilia(),
                 'percentual_acrescimo' => 0,
                 'valor_total' => $salarioFamilia,
             ]));
@@ -122,50 +167,82 @@ class FolhaLancamentoService
             ]));
         }
 
-        // 8. INSS (DESCONTO)
-        $inss = $this->calculadora->calcularINSS($funcionario->salario_base);
-        if ($inss > 0) {
-            $aliquota = $this->calculadora->getAliquotaEfetivaINSS($funcionario->salario_base);
+        // 8. Faltas (DESCONTO) - 🆕 CORRIGIDO (sem DSR)
+        $faltasValor = 0;
+        if (!empty($dados['faltas_dias']) && $dados['faltas_dias'] > 0) {
+            $salarioBase = (float) $funcionario->contrato->salario_base;
+            $faltasDias = (float) $dados['faltas_dias'];
+            $faltasValor = round(($salarioBase / 30) * $faltasDias, 2);
+            
             $lancamentos->push($this->criarLancamento($folha, [
                 'categoria' => FolhaLancamento::CATEGORIA_DESCONTO,
-                'tipo' => FolhaLancamento::TIPO_INSS,
-                'descricao' => "INSS ({$aliquota}%)",
-                'quantidade' => 1,
-                'valor_unitario' => $inss,
+                'tipo' => FolhaLancamento::TIPO_FALTA,
+                'descricao' => 'Faltas',
+                'quantidade' => $dados['faltas_dias'],
+                'valor_unitario' => round($salarioBase / 30, 2),
                 'percentual_acrescimo' => 0,
-                'valor_total' => $inss,
+                'valor_total' => $faltasValor,
             ]));
         }
 
-        // 9. Faltas (DESCONTO)
-        if (!empty($dados['faltas_dias']) && $dados['faltas_dias'] > 0) {
-            $faltas = $this->calculadora->calcularFaltas(
-                $dados['faltas_dias'],
-                $funcionario->salario_base,
-                $competencia
-            );
+        // 🆕 Calcula total de proventos e descontos parciais para base INSS
+        $totalProventosParcial = $lancamentos->where('categoria', FolhaLancamento::CATEGORIA_PROVENTO)->sum('valor_total');
+        $totalDescontosParcial = $lancamentos->where('categoria', FolhaLancamento::CATEGORIA_DESCONTO)->sum('valor_total');
 
-            if ($faltas['valor'] > 0) {
+        // 🆕 Base INSS = Salário + HE + DSR - Faltas
+        // $baseInss = $funcionario->salario_base + $totalHEValor + $dsr - $faltasValor;
+        Log::info('Componentes Base INSS:', [
+            'salario_base' => $funcionario->contrato->salario_base,
+            'totalHEValor' => $totalHEValor,
+            'dsr' => $dsr,
+            'faltasValor' => $faltasValor,
+            'soma' => $funcionario->contrato->salario_base + $totalHEValor + $dsr - $faltasValor,
+        ]);
+        // 🆕 Base INSS truncada
+        // $baseInss = floor(($funcionario->salario_base + $totalHEValor + $dsr - $faltasValor) * 100) / 100;
+        // 🆕 Base INSS - garantir float
+        $salarioBase = (float) $funcionario->contrato->salario_base;
+        $baseInss = round($salarioBase + $totalHEValor + $dsr - $faltasValor, 2);
+        
+        
+        Log::info('Base INSS:', [
+            'salario' => $salarioBase,
+            'HE' => $totalHEValor,
+            'DSR' => $dsr,
+            'faltas' => $faltasValor,
+            'base' => $baseInss
+        ]);
+        
+
+        // 9. INSS (DESCONTO) - 🆕 CORRIGIDO (base correta)
+        // $inss = $this->calculadora->calcularINSS($baseInss);
+        // if ($inss > 0) {
+        //     $aliquota = $baseInss > 0 ? round(($inss / $baseInss) * 100, 4) : 0;
+        //     $lancamentos->push($this->criarLancamento($folha, [
+        //         'categoria' => FolhaLancamento::CATEGORIA_DESCONTO,
+        //         'tipo' => FolhaLancamento::TIPO_INSS,
+        //         'descricao' => "INSS ({$aliquota}%)",
+        //         'quantidade' => 1,
+        //         'valor_unitario' => $inss,
+        //         'percentual_acrescimo' => 0,
+        //         'valor_total' => $inss,
+        //     ]));
+        // }
+         // 9. INSS (DESCONTO)
+        if ($aplicaINSS) {
+            $baseInss = round($funcionario->salario_base + $totalHEValor + $dsr - $faltasValor, 2);
+            $inss = $this->calculadora->calcularINSS($baseInss);
+            
+            if ($inss > 0) {
+                $aliquota = $baseInss > 0 ? round(($inss / $baseInss) * 100, 4) : 0;
                 $lancamentos->push($this->criarLancamento($folha, [
                     'categoria' => FolhaLancamento::CATEGORIA_DESCONTO,
-                    'tipo' => FolhaLancamento::TIPO_FALTA,
-                    'descricao' => 'Faltas',
-                    'quantidade' => $dados['faltas_dias'],
-                    'valor_unitario' => $faltas['valor'] / $dados['faltas_dias'],
-                    'percentual_acrescimo' => 0,
-                    'valor_total' => $faltas['valor'],
-                ]));
-            }
-
-            if ($faltas['dsr'] > 0) {
-                $lancamentos->push($this->criarLancamento($folha, [
-                    'categoria' => FolhaLancamento::CATEGORIA_DESCONTO,
-                    'tipo' => FolhaLancamento::TIPO_DSR_FALTA,
-                    'descricao' => 'DSR sobre Faltas',
+                    'tipo' => FolhaLancamento::TIPO_INSS,
+                    'descricao' => "INSS ({$aliquota}%)",
                     'quantidade' => 1,
-                    'valor_unitario' => $faltas['dsr'],
+                    'valor_unitario' => $inss,
                     'percentual_acrescimo' => 0,
-                    'valor_total' => $faltas['dsr'],
+                    'valor_total' => $inss,
                 ]));
             }
         }
@@ -196,34 +273,40 @@ class FolhaLancamentoService
             ]));
         }
 
-        // 12. Arredondamentos
+        // 12. Arredondamentos - 🆕 CORRIGIDO
         $totalProventos = $lancamentos->where('categoria', FolhaLancamento::CATEGORIA_PROVENTO)->sum('valor_total');
         $totalDescontos = $lancamentos->where('categoria', FolhaLancamento::CATEGORIA_DESCONTO)->sum('valor_total');
-        $arredondamentos = $this->calculadora->calcularArredondamentos($totalProventos, $totalDescontos);
 
-        if ($arredondamentos['provento'] > 0) {
-            $lancamentos->push($this->criarLancamento($folha, [
-                'categoria' => FolhaLancamento::CATEGORIA_PROVENTO,
-                'tipo' => FolhaLancamento::TIPO_ARREDONDAMENTO,
-                'descricao' => 'Arredondamento Provento',
-                'quantidade' => 1,
-                'valor_unitario' => $arredondamentos['provento'],
-                'percentual_acrescimo' => 0,
-                'valor_total' => $arredondamentos['provento'],
-            ]));
+        $liquidoBruto = $totalProventos - $totalDescontos;
+
+        // Se o líquido não é inteiro, arredonda para cima
+        if ($liquidoBruto != floor($liquidoBruto)) {
+            $liquidoArredondado = ceil($liquidoBruto);
+            $arredondamentoProvento = round($liquidoArredondado - $liquidoBruto, 2);
+
+            if($arredondamentoProvento > 0) {
+
+                $lancamentos->push($this->criarLancamento($folha, [
+                    'categoria' => FolhaLancamento::CATEGORIA_PROVENTO,
+                    'tipo' => FolhaLancamento::TIPO_ARREDONDAMENTO,
+                    'descricao' => 'Arredondamento Provento',
+                    'quantidade' => 1,
+                    'valor_unitario' => $arredondamentoProvento,
+                    'percentual_acrescimo' => 0,
+                    'valor_total' => $arredondamentoProvento,
+                    'tota_proventos_parcial' => $totalProventosParcial,
+                    'total_descontos_parcial' => $totalDescontosParcial,
+                    ]));
+            }
         }
 
-        if ($arredondamentos['desconto'] > 0) {
-            $lancamentos->push($this->criarLancamento($folha, [
-                'categoria' => FolhaLancamento::CATEGORIA_DESCONTO,
-                'tipo' => FolhaLancamento::TIPO_ARREDONDAMENTO,
-                'descricao' => 'Arredondamento Desconto',
-                'quantidade' => 1,
-                'valor_unitario' => $arredondamentos['desconto'],
-                'percentual_acrescimo' => 0,
-                'valor_total' => $arredondamentos['desconto'],
-            ]));
-        }
+        Log::info('DSR Cálculo:', [
+            'totalHEValor' => $totalHEValor,
+            'diasUteis' => $diasUteis,
+            'domingosFeriados' => $domingosFeriados,
+            'formula' => "($totalHEValor / $diasUteis) * $domingosFeriados",
+            'resultado' => round(($totalHEValor / $diasUteis) * $domingosFeriados, 2),
+        ]);
 
         return $lancamentos;
     }

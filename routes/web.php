@@ -1,13 +1,11 @@
 <?php
 
-use App\Http\Controllers\RH\FaixaInssController;
-use App\Http\Controllers\RH\FaixaIrrfController;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\RH\{CargoController, ContraChequeController, DepartamentoController, FaixaInssController, FaixaIrrfController, FolhaPagamentoController, FuncionarioController, PeriodoFeriasController, RhDashboardController};
 use App\Http\Controllers\Api\CalculoTributarioController;
 use App\Http\Controllers\Admin\{ActivityLogController, PermissionController, RoleController, UserController};
 use App\Http\Controllers\{DashboardController, ProfileController};
-use App\Http\Controllers\RH\{CargoController, DepartamentoController, FolhaPagamentoController, FuncionarioController, PeriodoFeriasController, RhDashboardController};
 
 
 // Route::get('/', function () {
@@ -62,6 +60,17 @@ Route::middleware(['auth', 'verified'])
                 Route::post('/funcionarios/{funcionario}/demitir', [FuncionarioController::class, 'demitir'])
                     ->middleware('can:funcionarios.edit')
                     ->name('funcionarios.demitir');
+
+                Route::prefix('/funcionarios/{funcionario}/contracheque')->group(function () {
+
+                    Route::get('/{competencia}/{folhaPagamento}', [ContraChequeController::class, 'visualizar'])
+                        ->name('funcionarios.contracheque.visualizar');
+
+                    Route::get('/{competencia}/{folhaPagamento}/pdf', [ContraChequeController::class, 'gerarPdf'])
+                        ->name('funcionarios.contracheque.pdf');
+                });
+
+
             // });
 
 

@@ -7,7 +7,7 @@
         {{-- Header --}}
         <div class="mb-6 flex items-center justify-between">
             <div>
-                <h1 class="text-2xl font-bold text-gray-900">Editar Folha de Pagamento</h1>
+                <h1 class="text-2xl font-bold text-gray-900">Editar Folha de Pagamento New</h1>
                 <p class="mt-1 text-sm text-gray-600">
                     Funcionário: <span class="font-semibold text-indigo-600" x-text="funcionario.nome_completo"></span> |
                     Competência: <span class="font-semibold" x-text="competenciaDisplay"></span>
@@ -412,8 +412,271 @@
         </form>
     </div>
 @endsection
-
 @push('scripts')
+    <script>
+        function folhaPagamentoEditForm(folhaData) {
+            const lancamentos = folhaData.lancamentos || [];
+
+            const getLancamento = (tipo) => {
+                const l = lancamentos.find(l => l.tipo === tipo);
+                return l ? parseFloat(l.quantidade) || 0 : 0;
+            };
+            const getLancamentoValor = (tipo) => {
+                const l = lancamentos.find(l => l.tipo === tipo);
+                return l ? parseFloat(l.valor_unitario) || 0 : 0;
+            };
+
+            return {
+                // Funcionário
+                funcionario: {
+                    id: folhaData.funcionario?.id || null,
+                    nome_completo: folhaData.funcionario?.nome_completo || '',
+                    cpf: folhaData.funcionario?.documentos?.cpf || '',
+                    local_trabalho: folhaData.funcionario?.contrato?.local_trabalho || '',
+                    tipo_contratacao: folhaData.funcionario?.contrato?.tipo_contratacao || 'CLT',
+                    tipo_contrato: folhaData.funcionario?.contrato?.tipo_contrato || 'indeterminado',
+                    cargo: folhaData.funcionario?.cargo?.titulo || '',
+                    salario_base: parseFloat(folhaData?.salario_base) || 0,
+                    carga_horaria_semanal: parseInt(folhaData.funcionario?.contrato?.carga_horaria_semanal) || 44,
+                    qtd_dependentes_salario_familia: parseInt(folhaData.funcionario?.contrato
+                        ?.qtd_dependentes_salario_familia) || 0,
+                },
+
+                competencia: folhaData.competencia || '',
+                competenciaDisplay: '',
+
+                form: {
+                    salario_base: parseFloat(folhaData.salario_base) || 0,
+                    horas_extras_totais: getLancamento('hora_extra_normal'),
+                    horas_sabado: getLancamento('hora_extra_sabado'),
+                    horas_feriado: getLancamento('hora_extra_feriado'),
+                    faltas_dias: getLancamento('falta'),
+                    vale_dia_20: getLancamentoValor('vale_dia_20'),
+                    vale_extra: getLancamentoValor('vale_extra'),
+                    gratificacao_feriado: getLancamentoValor('gratificacao'),
+                    status: folhaData.status || 'aberta',
+                    observacao: folhaData.observacao || '',
+                },
+
+                // Valores calculados
+                diasUteis: 0,
+                domingosFeriados: 0,
+                valorHoraNormal: 0,
+                valorHoraExtra: 0,
+                valorHoraFeriado: 0,
+                inss: 0,
+                salarioFamilia: 0,
+                faltasValor: 0,
+                dsrFaltas: 0,
+                dsrHoraExtraValor: 0,
+                baseInss: 0,
+                arredondamentoProvento: 0,
+                arredondamentoDesconto: 0,
+                quintoDiaUtil: '',
+                diasTrabalho: [1, 2, 3, 4, 5],
+
+                // ─── INIT ──────────────────────────────────
+                initEdit() {
+                    if (this.competencia) {
+                        const date = new Date(this.competencia);
+                        if (!isNaN(date)) {
+                            const year = date.getFullYear();
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            this.competencia = `${year}-${month}`;
+                        }
+                        this.competenciaDisplay = new Date(this.competencia + '-01').toLocaleDateString('pt-BR', {
+                            month: '2-digit',
+                            year: 'numeric'
+                        });
+                    }
+                    this.calcularDiasUteis();
+                },
+
+                // ─── CÁLCULOS ───────────────────────────────
+                async calcularDiasUteis() {
+                    if (!this.competencia) return;
+                    try {
+                        const params = new URLSearchParams({
+                            competencia: this.competencia
+                        });
+                        if (this.funcionario.id) {
+                            params.append('funcionario_id', this.funcionario.id);
+                        }
+                        const response = await fetch(`/rh/folha-pagamento/calendario?${params.toString()}`);
+                        const result = await response.json();
+                        this.diasUteis = result.dias_uteis;
+                        this.domingosFeriados = result.domingos_feriados;
+                        this.quintoDiaUtil = result.quinto_dia_util;
+                        this.diasTrabalho = result.dias_trabalho || [1, 2, 3, 4, 5];
+                        this.calcularTotais();
+                    } catch (error) {
+                        console.error('Erro ao carregar calendário:', error);
+                    }
+                },
+
+                calcularTotais() {
+                    const salario = this.form.salario_base;
+                    const cargaHoraria = this.funcionario.carga_horaria_semanal || 44;
+                    const horasMensais = (cargaHoraria / 6) * 30;
+
+                    this.valorHoraNormal = horasMensais > 0 ? salario / horasMensais : 0;
+                    this.valorHoraExtra = this.valorHoraNormal * 1.5;
+                    this.valorHoraFeriado = this.valorHoraNormal * 2;
+
+                    // Total HE em R$
+                    const totalHEValor =
+                        (this.form.horas_extras_totais * this.valorHoraExtra) +
+                        (this.form.horas_sabado * this.valorHoraExtra) +
+                        (this.form.horas_feriado * this.valorHoraFeriado);
+
+                    // DSR HE: (Valor HE ÷ dias úteis) × domingos
+                    if (totalHEValor > 0 && this.diasUteis > 0) {
+                        this.dsrHoraExtraValor = Math.round((totalHEValor / this.diasUteis) * this.domingosFeriados * 100) /
+                            100;
+                    } else {
+                        this.dsrHoraExtraValor = 0;
+                    }
+
+                    // Faltas: 30 dias
+                    const valorDiaFalta = salario / 30;
+                    this.faltasValor = Math.round(this.form.faltas_dias * valorDiaFalta * 100) / 100;
+                    this.dsrFaltas = 0;
+
+                    // Salário Família
+                    this.calcularSalarioFamilia(salario);
+
+                    // Base INSS
+                    this.baseInss = salario + totalHEValor + this.dsrHoraExtraValor - this.faltasValor;
+                    if (this.baseInss < 0) this.baseInss = 0;
+
+                    // INSS
+                    this.calcularInss(this.baseInss);
+                },
+
+                async calcularInss(salario) {
+                    // 🆕 Estagiário e aprendiz não pagam INSS
+                    if (this.funcionario.tipo_contrato === 'estagio' || this.funcionario.tipo_contrato === 'aprendiz') {
+                        this.inss = 0;
+                        this.calcularArredondamento();
+                        return;
+                    }
+                    if (['pj', 'autonomo'].includes(this.funcionario.tipo_contratacao)) {
+                        this.inss = 0;
+                        this.calcularArredondamento();
+                        return;
+                    }
+
+                    if (!salario || salario <= 0) {
+                        this.inss = 0;
+                        this.calcularArredondamento();
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('{{ route('rh.api.calcular-inss') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                funcionario_id: this.funcionario.id,
+                                salario: salario,
+                                competencia: this.competencia,
+                            }),
+                        });
+                        const data = await response.json();
+                        this.inss = data.success ? data.inss : 0;
+                    } catch (error) {
+                        console.error('Erro ao calcular INSS:', error);
+                        this.inss = 0;
+                    }
+                    this.calcularArredondamento();
+                },
+
+                calcularSalarioFamilia(salario) {
+                    const dependentes = this.funcionario.qtd_dependentes_salario_familia || 0;
+                    if (dependentes === 0 || salario > 1819.26) {
+                        this.salarioFamilia = 0;
+                        return;
+                    }
+                    this.salarioFamilia = Math.round(dependentes * 62.04 * 100) / 100;
+                },
+
+                calcularArredondamento() {
+                    const proventosBruto = this.totalProventosBruto;
+                    const descontosBruto = this.totalDescontosBruto;
+                    const liquidoBruto = proventosBruto - descontosBruto;
+
+                    if (liquidoBruto === Math.floor(liquidoBruto)) {
+                        this.arredondamentoProvento = 0;
+                        this.arredondamentoDesconto = 0;
+                        return;
+                    }
+
+                    const liquidoArredondado = Math.ceil(liquidoBruto);
+                    this.arredondamentoProvento = Math.round((liquidoArredondado - liquidoBruto) * 100) / 100;
+                    this.arredondamentoDesconto = 0;
+                },
+
+                // ─── GETTERS ────────────────────────────────
+                get totalHorasExtrasNormais() {
+                    return Math.round(this.form.horas_extras_totais * this.valorHoraExtra * 100) / 100;
+                },
+                get totalHorasSabado() {
+                    return Math.round(this.form.horas_sabado * this.valorHoraExtra * 100) / 100;
+                },
+                get totalHorasFeriado() {
+                    return Math.round(this.form.horas_feriado * this.valorHoraFeriado * 100) / 100;
+                },
+                get totalHorasExtras() {
+                    return this.totalHorasExtrasNormais + this.totalHorasSabado + this.totalHorasFeriado;
+                },
+                get dsrHoraExtra() {
+                    return this.dsrHoraExtraValor;
+                },
+
+                get totalProventosBruto() {
+                    return (
+                        this.form.salario_base +
+                        this.totalHorasExtras +
+                        this.dsrHoraExtraValor +
+                        this.salarioFamilia +
+                        (this.form.gratificacao_feriado || 0)
+                    );
+                },
+                get totalDescontosBruto() {
+                    return (
+                        this.inss +
+                        (this.form.vale_dia_20 || 0) +
+                        (this.form.vale_extra || 0) +
+                        this.faltasValor
+                    );
+                },
+                get totalProventos() {
+                    return this.totalProventosBruto + this.arredondamentoProvento;
+                },
+                get totalDescontos() {
+                    return this.totalDescontosBruto + this.arredondamentoDesconto;
+                },
+                get salarioLiquido() {
+                    return Math.round((this.totalProventos - this.totalDescontos) * 100) / 100;
+                },
+
+                // ─── HELPERS ────────────────────────────────
+                formatMoney(value) {
+                    if (value === null || value === undefined) return 'R$ 0,00';
+                    return 'R$ ' + parseFloat(value).toLocaleString('pt-BR', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    });
+                }
+            }
+        }
+    </script>
+@endpush
+{{-- @push('scripts')
     <script>
         function folhaPagamentoEditForm(folhaData) {
             // Extrai quantidades dos lançamentos existentes
@@ -714,4 +977,4 @@
             }
         }
     </script>
-@endpush
+@endpush --}}

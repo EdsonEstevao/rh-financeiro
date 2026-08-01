@@ -292,6 +292,16 @@
                                                 🗑️ Excluir
                                             </button>
                                         </div>
+                                        <a href="{{ route('rh.funcionarios.contracheque.visualizar', ['funcionario' => $folha->funcionario->id, 'competencia' => $folha->competencia, 'folhaPagamento' => $folha->id]) }}"
+                                            class="text-green-600 hover:text-green-900" title="Ver Contracheque">
+                                            💳
+
+                                        </a>
+                                        {{-- imprimir pdf --}}
+                                        <a href="{{ route('rh.funcionarios.contracheque.pdf', ['funcionario' => $folha->funcionario->id, 'competencia' => $folha->competencia, 'folhaPagamento' => $folha->id]) }}"
+                                            class="text-blue-600 hover:text-blue-900" title="Imprimir PDF">
+                                            📄
+                                        </a>
                                     </div>
                                 </td>
                             </tr>

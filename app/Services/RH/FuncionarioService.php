@@ -43,12 +43,42 @@ class FuncionarioService
     //     });
     // }
 
+     /**
+     * 🆕 Normaliza o campo dias_trabalho para JSON
+     * Aceita tanto array quanto string JSON
+     */
+    private function normalizarDiasTrabalho(array $dados): ?string
+    {
+        // Se veio como array (checkboxes), converte para JSON
+        if (!empty($dados['dias_trabalho']) && is_array($dados['dias_trabalho'])) {
+            return json_encode(array_map('intval', $dados['dias_trabalho']));
+        }
+
+        // Se veio como JSON string (campo hidden)
+        if (!empty($dados['dias_trabalho_json'])) {
+            $decoded = json_decode($dados['dias_trabalho_json'], true);
+            if (is_array($decoded) && !empty($decoded)) {
+                return json_encode(array_map('intval', $decoded));
+            }
+        }
+
+        // Fallback: padrão seg a sex
+        return json_encode([1, 2, 3, 4, 5]);
+    }
+
+
     /**
      * Criar funcionário completo (com todas as tabelas relacionadas)
      */
     public function criarFuncionario(array $dados): Funcionario
     {
         return DB::transaction(function () use ($dados) {
+            // 🆕 Normaliza dias_trabalho antes de criar
+            $dados['dias_trabalho'] = $this->normalizarDiasTrabalho($dados);
+
+            // Remove o campo auxiliar para não dar erro no create
+            unset($dados['dias_trabalho_json']);
+
             // 1. Criar funcionário (dados básicos)
             $funcionario = Funcionario::create([
                 'user_id' => $dados['user_id'] ?? null,
@@ -342,6 +372,15 @@ class FuncionarioService
     public function atualizarFuncionario(Funcionario $funcionario, array $dados): Funcionario
     {
         return DB::transaction(function () use ($funcionario, $dados) {
+
+             // 🆕 Normaliza dias_trabalho antes de atualizar
+            if (isset($dados['dias_trabalho']) || isset($dados['dias_trabalho_json'])) {
+                $dados['dias_trabalho'] = $this->normalizarDiasTrabalho($dados);
+            }
+            
+            // Remove o campo auxiliar
+            unset($dados['dias_trabalho_json']);
+
             // Atualiza dados básicos
             $funcionario->update($dados);
 
@@ -367,6 +406,7 @@ class FuncionarioService
             );
 
             // Contrato (se mudar data_admissao, recalcula férias automaticamente)
+            // Contrato (agora com dias_trabalho normalizado)
             $funcionario->contrato()->updateOrCreate(
                 ['funcionario_id' => $funcionario->id],
                 $dados

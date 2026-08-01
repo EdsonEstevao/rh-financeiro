@@ -175,7 +175,7 @@ class FolhaPagamentoController extends Controller
     }
 
     // ─── STORE ────────────────────────────────────────────────────
-    public function store(FolhaPagamentoRequest $request): RedirectResponse
+    public function storeOldd(FolhaPagamentoRequest $request): RedirectResponse
     {
         dd('Stored antigo');
         $folha = FolhaPagamento::create($request->validated());
@@ -208,19 +208,10 @@ class FolhaPagamentoController extends Controller
     //     return redirect()->route('rh.folha-pagamento.index')
     //         ->with('success', 'Folha criada com sucesso!');
     // }
+    // public function store(Request $request)
     public function storeNew(Request $request)
     {
-        // dd('stored novo');
-        // Validação mínima - usuário só informa o essencial
-        // $validated = $request->validate([
-        //     'funcionario_id' => 'required|exists:funcionarios,id',
-        //     'competencia' => 'required|date_format:Y-m',
-        //     'horas_extras_totais' => 'nullable|numeric|min:0',
-        //     'faltas_dias' => 'nullable|numeric|min:0',
-        //     'eh_diarista' => 'nullable|boolean',
-        //     'valor_diaria' => 'nullable|numeric|min:0',
-        //     'gratificacao_feriado' => 'nullable|numeric|min:0',
-        // ]);
+
         $validated = $request->validate([
             'funcionario_id' => 'required|exists:funcionarios,id',
             'competencia' => 'required|date_format:Y-m',
@@ -238,7 +229,8 @@ class FolhaPagamentoController extends Controller
         try {
 
             $funcionario = Funcionario::findOrFail($validated['funcionario_id']);
-            $competencia = Carbon::createFromFormat('Y-m', $validated['competencia'])->startOfMonth();
+            // $competencia = Carbon::createFromFormat('Y-m', $validated['competencia'])->startOfMonth();
+            $competencia = Carbon::parse($request->input('competencia') . '-01');
 
 
             // ✅ Verifica se já existe folha para este funcionário nesta competência
@@ -308,6 +300,7 @@ class FolhaPagamentoController extends Controller
         // dd($funcionarios, $folhaPagamento);
 
         return view('rh.folha-pagamento.edit-new', compact('folhaPagamento', 'funcionarios'));
+        // return view('rh.folha-pagamento.edit', compact('folhaPagamento', 'funcionarios'));
     }
 
     // ─── UPDATE ───────────────────────────────────────────────────
@@ -379,10 +372,41 @@ class FolhaPagamentoController extends Controller
      */
     public function calendario(Request $request)
     {
-        $competencia = Carbon::createFromFormat('Y-m', $request->input('competencia'))->startOfMonth();
+        // dd($request->all());
+
+        // $competencia = Carbon::createFromFormat('Y-m', $request->input('competencia'))->startOfMonth();
+        $competencia = Carbon::parse($request->input('competencia') . '-01');
+            // 🆕 Correto: adiciona o dia 01 para formar uma data válida
+        // $competencia = Carbon::parse($request->competencia . '-01')->format('m');
+
+        // 🆕 Buscar dias de trabalho do funcionário
+        $diasTrabalho = null;
+        if ($request->filled('funcionario_id')) {
+            $contrato = FuncionarioContrato::where('funcionario_id', $request->funcionario_id)->first();
+            // $diasTrabalho = $contrato?->dias_trabalho;  // O cast 'array' já converte
+             if ($contrato && $contrato->dias_trabalho) {
+                $diasTrabalho = $contrato->dias_trabalho;
+
+                // 🆕 Garante que é array (pode vir como string JSON)
+                if (is_string($diasTrabalho)) {
+                    $diasTrabalho = json_decode($diasTrabalho, true);
+                }
+
+                // Garante que são inteiros
+                if (is_array($diasTrabalho)) {
+                    $diasTrabalho = array_map('intval', $diasTrabalho);
+                }
+             }
+        }
+
+
+         // Fallback se não encontrou nada
+        if (empty($diasTrabalho) || !is_array($diasTrabalho)) {
+            $diasTrabalho = [1, 2, 3, 4, 5]; // seg a sex
+        }
 
         return response()->json(
-            $this->calculoFolhaService->getResumoCalendario($competencia)
+            $this->calculoFolhaService->getResumoCalendario($competencia, $diasTrabalho)
         );
     }
     // public function update(Request $request, FolhaPagamento $folha)
@@ -1087,7 +1111,8 @@ class FolhaPagamentoController extends Controller
                     'cargo' => $funcionario->cargo->titulo ?? 'Sem cargo', // ✅
                     'ativo' => $funcionario->ativo,
                     'local_trabalho' => $funcionario->contrato->local_trabalho,
-                    'tipo_contratacao' => $funcionario->contrato->tipo_contratacao
+                    'tipo_contratacao' => $funcionario->contrato->tipo_contratacao,
+                    'tipo_contrato' => $funcionario->contrato->tipo_contrato,
                 ];
             });
 
@@ -1257,23 +1282,43 @@ class FolhaPagamentoController extends Controller
 
     public function verificarFolhaExistente(Request $request)
     {
-        $funcionarioId = $request->input('funcionario_id');
-        $competencia = $request->input('competencia');
+        $funcionarioId = $request->funcionario_id;
+        $competencia = $request->competencia;
+
+        // return response()->json(['existe' => false, 'folha' => null, 'dias_trabalho' => [], 'funcionario' => $funcionarioId, 'competencia' => $competencia]);
 
         if (!$funcionarioId || !$competencia) {
+
             return response()->json(['existe' => false]);
         }
 
-        $competenciaDate = Carbon::createFromFormat('Y-m', $competencia)->startOfMonth()->format('Y-m-d');
+        // $competenciaDate = Carbon::createFromFormat('Y-m', $competencia)->startOfMonth()->format('Y-m-d');
+        $competenciaDate = Carbon::parse($competencia . '-01')->format('Y-m-d');
 
-        $query = FolhaPagamento::query()->where('funcionario_id', $funcionarioId)
-            ->where('competencia', $competenciaDate);
+
+
+        $query = FolhaPagamento::query()
+                ->where('funcionario_id', $funcionarioId)
+                ->where('competencia', $competenciaDate);
+
         $existe = $query->exists();
 
         $folha = $query->first();
 
+        // $existe = !is_null($folha);
+
+        $competenciaDate = Carbon::parse($competencia . '-01')->format('Y-m-d');
+
+         // 🆕 Buscar dias de trabalho do contrato
+        $contrato = FuncionarioContrato::where('funcionario_id', $funcionarioId)->first();
+        $diasTrabalho = $contrato?->dias_trabalho ?? [1, 2, 3, 4, 5];
+
         if ($existe && $folha) {
-            return response()->json(['existe' => true, 'folha' => $folha]);
+            return response()->json([
+                'existe' => true,
+                'folha' => $folha,
+                'dias_trabalho' => $diasTrabalho
+            ]);
         }
 
         return response()->json(['existe' => $existe]);

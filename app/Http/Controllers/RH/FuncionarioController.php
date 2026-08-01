@@ -100,6 +100,7 @@ class FuncionarioController extends Controller
         return view('rh.funcionarios.create', compact('departamentos', 'cargos'));
     }
 
+
     public function store(FuncionarioStoreRequest $request)
     {
 

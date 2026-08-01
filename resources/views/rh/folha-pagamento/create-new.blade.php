@@ -124,7 +124,7 @@
                                 <div>
                                     <label class="block text-xs font-medium text-gray-700">💳 Dia 20 Vale (R$)</label>
                                     <input type="number" name="vale_dia_20" x-model.number="form.vale_dia_20"
-                                        step="0.01" min="0" value="0"
+                                        step="0.01" min="0" value="0" @input="calcularTotais()"
                                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                                 </div>
 
@@ -132,7 +132,7 @@
                                 <div>
                                     <label class="block text-xs font-medium text-gray-700">🎫 Vale Extra (R$)</label>
                                     <input type="number" name="vale_extra" x-model.number="form.vale_extra" step="0.01"
-                                        min="0" value="0"
+                                        min="0" value="0" @input="calcularTotais()"
                                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                                 </div>
 
@@ -342,11 +342,11 @@
                                         <td class="px-3 py-2 text-right font-medium text-red-700"
                                             x-text="formatMoney(faltasValor)"></td>
                                     </tr>
-                                    <tr x-show="dsrFaltas > 0">
+                                    {{-- <tr x -show="dsrFaltas > 0">
                                         <td class="px-3 py-2 text-gray-600">D.S.R Faltas</td>
                                         <td class="px-3 py-2 text-right font-medium text-red-700"
-                                            x-text="formatMoney(dsrFaltas)"></td>
-                                    </tr>
+                                            x -text="formatMoney(dsrFaltas)"></td>
+                                    </tr> --}}
                                     <tr x-show="arredondamentoDesconto != 0">
                                         <td class="px-3 py-2 text-gray-600">Arred. Desc.</td>
                                         <td class="px-3 py-2 text-right font-medium text-red-700"
@@ -392,7 +392,6 @@
         </form>
     </div>
 @endsection
-
 @push('scripts')
     <script>
         function folhaPagamentoForm() {
@@ -406,7 +405,6 @@
                 // Funcionário selecionado
                 funcionario: {},
                 competencia: '',
-                // Folha de pagamento existente
                 folha: {},
 
                 // Formulário (dados de entrada)
@@ -421,6 +419,7 @@
                     horas_sabado: 0,
                     horas_feriado: 0,
                     gratificacao_feriado: 0,
+                    adiantamento_salarial: 0,
                 },
 
                 // Valores calculados
@@ -428,20 +427,20 @@
                 domingosFeriados: 0,
                 valorHoraNormal: 0,
                 valorHoraExtra: 0,
+                valorHoraFeriado: 0,
                 inss: 0,
                 salarioFamilia: 0,
                 faltasValor: 0,
                 dsrFaltas: 0,
+                dsrHoraExtraValor: 0,
+                baseInss: 0,
                 arredondamentoProvento: 0,
                 arredondamentoDesconto: 0,
                 quintoDiaUtil: '',
                 folhaExistente: false,
-                totalDescontos: 0,
-                salarioLiquido: 0,
                 mensagemErro: '',
+                diasTrabalho: [1, 2, 3, 4, 5],
 
-                // E adicione um watcher para competencia
-                // No init ou como método separado
                 init() {
                     this.$watch('competencia', () => {
                         this.calcularDiasUteis();
@@ -455,7 +454,6 @@
                         this.searchResults = [];
                         return;
                     }
-
                     try {
                         const url = `/rh/folha-pagamento/buscar?q=${encodeURIComponent(this.searchTerm)}`;
                         const response = await fetch(url);
@@ -468,20 +466,18 @@
                 },
 
                 selectFuncionario(func) {
-                    console.log(func);
+                    console.log('Funcionario selecionado:', func);
                     this.funcionario = func;
                     this.form.salario_base = parseFloat(func.salario_base) || 0;
                     this.form.local_trabalho = func.local_trabalho || '';
                     this.form.tipo_contratacao = func.tipo_contratacao || '';
+                    this.form.tipo_contrato = func.tipo_contrato || '';
                     this.searchTerm = func.nome_completo;
                     this.showDropdown = false;
                     this.searchResults = [];
-
                     this.calcularTotais();
                     this.verificarFolhaExistente();
-
                     if (this.competencia) this.calcularDiasUteis();
-
                 },
 
                 highlightNext() {
@@ -504,13 +500,19 @@
                 // ─── CÁLCULOS ───────────────────────────────
                 async calcularDiasUteis() {
                     if (!this.competencia) return;
-
                     try {
-                        const response = await fetch(`/rh/folha-pagamento/calendario?competencia=${this.competencia}`);
+                        const params = new URLSearchParams({
+                            competencia: this.competencia
+                        });
+                        if (this.funcionario.id) {
+                            params.append('funcionario_id', this.funcionario.id);
+                        }
+                        const response = await fetch(`/rh/folha-pagamento/calendario?${params.toString()}`);
                         const data = await response.json();
                         this.diasUteis = data.dias_uteis;
                         this.domingosFeriados = data.domingos_feriados;
                         this.quintoDiaUtil = data.quinto_dia_util;
+                        this.diasTrabalho = data.dias_trabalho || [1, 2, 3, 4, 5];
                         this.calcularTotais();
                     } catch (error) {
                         console.error('Erro:', error);
@@ -524,105 +526,76 @@
                     const cargaHoraria = this.funcionario.carga_horaria_semanal || 44;
                     const horasMensais = (cargaHoraria / 6) * 30;
 
+                    // Valores hora
                     this.valorHoraNormal = horasMensais > 0 ? salario / horasMensais : 0;
                     this.valorHoraExtra = this.valorHoraNormal * 1.5;
+                    this.valorHoraFeriado = this.valorHoraNormal * 2;
 
-                    // INSS
-                    this.calcularInss(salario);
+                    // Total horas extras em R$
+                    const totalHEValor =
+                        (this.form.horas_extras_totais * this.valorHoraExtra) +
+                        (this.form.horas_sabado * this.valorHoraExtra) +
+                        (this.form.horas_feriado * this.valorHoraFeriado);
 
-                    // Salário Família
-                    this.calcularSalarioFamilia(salario);
-
-                    // Faltas
-                    if (this.diasUteis > 0) {
-                        const valorDia = salario / this.diasUteis;
-                        this.faltasValor = Math.round(this.form.faltas_dias * valorDia * 100) / 100;
-                        this.dsrFaltas = Math.round(this.faltasValor * (this.domingosFeriados / this.diasUteis) * 100) /
+                    // DSR Hora Extra: (Valor total HE ÷ dias úteis) × domingos/feriados
+                    if (totalHEValor > 0 && this.diasUteis > 0) {
+                        this.dsrHoraExtraValor = Math.round((totalHEValor / this.diasUteis) * this.domingosFeriados * 100) /
                             100;
-                    }
-
-                    // Arredondamentos
-                    const liquidoBruto = this.totalProventos - this.totalDescontos;
-                    const diff = Math.round((liquidoBruto - Math.floor(liquidoBruto * 100) / 100) * 100) / 100;
-                    if (diff > 0.005) {
-                        this.arredondamentoDesconto = diff;
-                        this.arredondamentoProvento = 0;
-                    } else if (diff < -0.005) {
-                        this.arredondamentoProvento = Math.abs(diff);
-                        this.arredondamentoDesconto = 0;
                     } else {
-                        this.arredondamentoProvento = 0;
-                        this.arredondamentoDesconto = 0;
+                        this.dsrHoraExtraValor = 0;
                     }
+
+                    // Faltas: usa 30 dias (mês comercial)
+                    const valorDiaFalta = salario / 30;
+                    this.faltasValor = Math.round(this.form.faltas_dias * valorDiaFalta * 100) / 100;
+                    this.dsrFaltas = 0;
+
+                    // Base INSS
+                    this.baseInss = salario + totalHEValor + this.dsrHoraExtraValor - this.faltasValor;
+                    if (this.baseInss < 0) this.baseInss = 0;
+
+
+                    // 🆕 Verifica se é estagiário antes de calcular INSS
+                    if (this.funcionario.tipo_contrato === 'estagio' ||
+                        this.funcionario.tipo_contrato === 'aprendiz' || ['pj', 'autonomo'].includes(this.funcionario
+                            .tipo_contratacao)) {
+                        this.inss = 0;
+                        this.calcularSalarioFamilia(salario);
+                        this.calcularArredondamento();
+                        return;
+                    }
+
+                    // // Salário Família
+                    // this.calcularSalarioFamilia(salario);
+
+                    // INSS (assíncrono - chama arredondamento depois)
+                    this.calcularInss(this.baseInss);
                 },
-                // calcularInss(salario) {
-                //     let inss = 0;
-
-                //     // Tabela progressiva do INSS (tetos por faixa)
-                //     const faixas = [{
-                //             teto: 1621.00,
-                //             aliquota: 0.075
-                //         }, // Faixa 1: até R$ 1.621,00 → 7,5%
-                //         {
-                //             teto: 2902.84,
-                //             aliquota: 0.09
-                //         }, // Faixa 2: até R$ 2.902,84 → 9%
-                //         {
-                //             teto: 4190.83,
-                //             aliquota: 0.12
-                //         }, // Faixa 3: até R$ 4.190,83 → 12%
-                //         {
-                //             teto: 8157.41,
-                //             aliquota: 0.14
-                //         }, // Faixa 4: até R$ 8.157,41 → 14%
-                //     ];
-
-                //     let anterior = 0;
-
-                //     for (const faixa of faixas) {
-                //         if (salario > anterior) {
-                //             // Calcula apenas sobre a parcela que está dentro desta faixa
-                //             const baseCalculo = Math.min(salario, faixa.teto) - anterior;
-                //             inss += baseCalculo * faixa.aliquota;
-                //             anterior = faixa.teto;
-                //         }
-                //         if (salario <= faixa.teto) break; // não precisa processar faixas acima do salário
-                //     }
-
-                //     this.inss = Math.round(inss * 100) / 100;
-                // },
-
-                // async calcularInss(salario) {
-                //     if (!salario || salario <= 0) {
-                //         this.inss = 0;
-                //         return;
-                //     }
-
-                //     try {
-                //         const response = await fetch('/rh/api/calcular-inss', {
-                //             method: 'POST',
-                //             headers: {
-                //                 'Content-Type': 'application/json',
-                //                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                //             },
-                //             body: JSON.stringify({
-                //                 salario: salario,
-                //                 competencia: this.competencia,
-                //             }),
-                //         });
-
-                //         const data = await response.json();
-                //         this.inss = data.inss;
-                //         this.detalhamentoInss = data.detalhamento; // opcional: para exibir tabela
-                //     } catch (error) {
-                //         console.error('Erro ao calcular INSS:', error);
-                //         this.inss = 0;
-                //     }
-                // },
 
                 async calcularInss(salario) {
+                    console.log('📤 Enviando para API - Salário base INSS:', salario);
+                    // if (!salario || salario <= 0) {
+                    //     this.inss = 0;
+                    //     this.calcularArredondamento();
+                    //     return;
+                    // }
+                    // 🆕 Verifica se é estagiário ou aprendiz
+                    if (this.funcionario.tipo_contrato === 'estagio' || this.funcionario.tipo_contrato === 'aprendiz') {
+                        this.inss = 0;
+                        this.calcularArredondamento();
+                        return;
+                    }
+
+                    // 🆕 Verifica tipo_contratacao (PJ, autônomo)
+                    if (['pj', 'autonomo'].includes(this.funcionario.tipo_contratacao)) {
+                        this.inss = 0;
+                        this.calcularArredondamento();
+                        return;
+                    }
+
                     if (!salario || salario <= 0) {
                         this.inss = 0;
+                        this.calcularArredondamento();
                         return;
                     }
 
@@ -640,25 +613,20 @@
                                 competencia: this.competencia,
                             }),
                         });
-
                         const data = await response.json();
-
-                        console.log(data); // Adicione este log para depuração
-                        console.log('Data received from INSS API:', data.message);
+                        console.log('📥 Resposta da API - INSS:', data.inss);
 
                         if (!data.success) {
                             console.error(data.message);
                             this.inss = 0;
-                            return;
+                        } else {
+                            this.inss = data.inss;
                         }
-
-                        this.inss = data.inss;
-                        this.detalhamentoInss = data.detalhamento;
-
                     } catch (error) {
                         console.error('Erro ao calcular INSS:', error);
                         this.inss = 0;
                     }
+                    this.calcularArredondamento();
                 },
 
                 calcularSalarioFamilia(salario) {
@@ -670,53 +638,88 @@
                     this.salarioFamilia = Math.round(dependentes * 62.04 * 100) / 100;
                 },
 
+                calcularArredondamento() {
+                    const proventosBruto = this.totalProventosBruto;
+                    const descontosBruto = this.totalDescontosBruto;
+                    const liquidoBruto = proventosBruto - descontosBruto;
+
+
+                    console.log('=== ARREDONDAMENTO ===');
+                    console.log('Proventos brutos:', proventosBruto);
+                    console.log('  Salário:', this.form.salario_base);
+                    console.log('  HE:', this.totalHorasExtras);
+                    console.log('  DSR HE:', this.dsrHoraExtraValor);
+                    console.log('  Sal Família:', this.salarioFamilia);
+                    console.log('Descontos brutos:', descontosBruto);
+                    console.log('  INSS:', this.inss);
+                    console.log('  Vale 20:', this.form.vale_dia_20);
+                    console.log('  Vale Extra:', this.form.vale_extra);
+                    console.log('  Faltas:', this.faltasValor);
+                    console.log('Líquido bruto:', liquidoBruto);
+
+                    // Se já é inteiro, não precisa arredondar
+                    if (liquidoBruto === Math.floor(liquidoBruto)) {
+                        this.arredondamentoProvento = 0;
+                        this.arredondamentoDesconto = 0;
+                        console.log('Líquido já é inteiro, sem arredondamento');
+                        return;
+                    }
+
+                    // Arredonda para o próximo inteiro
+                    const liquidoArredondado = Math.ceil(liquidoBruto);
+                    this.arredondamentoProvento = Math.round((liquidoArredondado - liquidoBruto) * 100) / 100;
+                    this.arredondamentoDesconto = 0;
+
+                    console.log('Líquido arredondado:', liquidoArredondado);
+                    console.log('Arredondamento provento:', this.arredondamentoProvento);
+                },
+
                 // ─── GETTERS COMPUTADOS ─────────────────────
                 get totalHorasExtrasNormais() {
                     return Math.round(this.form.horas_extras_totais * this.valorHoraExtra * 100) / 100;
                 },
-
                 get totalHorasSabado() {
                     return Math.round(this.form.horas_sabado * this.valorHoraExtra * 100) / 100;
                 },
-
                 get totalHorasFeriado() {
-                    return Math.round(this.form.horas_feriado * this.valorHoraNormal * 2 * 100) / 100;
+                    return Math.round(this.form.horas_feriado * this.valorHoraFeriado * 100) / 100;
                 },
-
                 get totalHorasExtras() {
                     return this.totalHorasExtrasNormais + this.totalHorasSabado + this.totalHorasFeriado;
                 },
-
-                get horasExtrasTotal() {
-                    return this.form.horas_extras_totais + this.form.horas_sabado + this.form.horas_feriado;
-                },
-
                 get dsrHoraExtra() {
-                    if (this.horasExtrasTotal === 0 || this.diasUteis === 0) return 0;
-                    const media = this.horasExtrasTotal / this.diasUteis;
-                    return Math.round(media * this.domingosFeriados * this.valorHoraExtra * 100) / 100;
+                    return this.dsrHoraExtraValor;
                 },
 
-                get totalProventos() {
+                // 🆕 Proventos brutos (sem arredondamento)
+                get totalProventosBruto() {
                     return (
                         this.form.salario_base +
                         this.totalHorasExtras +
-                        this.dsrHoraExtra +
+                        this.dsrHoraExtraValor +
                         this.salarioFamilia +
-                        (this.form.gratificacao_feriado || 0) +
-                        this.arredondamentoProvento
+                        (this.form.gratificacao_feriado || 0)
                     );
                 },
 
-                get totalDescontos() {
+                // 🆕 Descontos brutos (sem arredondamento)
+                get totalDescontosBruto() {
                     return (
                         this.inss +
                         (this.form.vale_dia_20 || 0) +
                         (this.form.vale_extra || 0) +
-                        this.faltasValor +
-                        this.dsrFaltas +
-                        this.arredondamentoDesconto
+                        this.faltasValor
                     );
+                },
+
+                // 🆕 Total proventos (com arredondamento)
+                get totalProventos() {
+                    return this.totalProventosBruto + this.arredondamentoProvento;
+                },
+
+                // 🆕 Total descontos (com arredondamento)
+                get totalDescontos() {
+                    return this.totalDescontosBruto + this.arredondamentoDesconto;
                 },
 
                 get salarioLiquido() {
@@ -731,17 +734,14 @@
                         maximumFractionDigits: 2
                     });
                 },
+
                 async verificarFolhaExistente() {
                     if (!this.funcionario.id || !this.competencia) return;
-
                     try {
                         const response = await fetch(
                             `/rh/folha-pagamento/verificar?funcionario_id=${this.funcionario.id}&competencia=${this.competencia}`
                         );
                         const data = await response.json();
-
-
-
                         if (data.existe) {
                             this.folhaExistente = true;
                             this.folha = data.folha;

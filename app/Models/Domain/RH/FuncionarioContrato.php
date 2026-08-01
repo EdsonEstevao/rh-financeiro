@@ -76,6 +76,7 @@ class FuncionarioContrato extends Model
         'eh_diarista',
         'aplica_inss',
         'carga_horaria_semanal',
+        'dias_trabalho',
         'horario_entrada',
         'horario_saida',
         'horario_almoco_inicio',
@@ -86,6 +87,7 @@ class FuncionarioContrato extends Model
     ];
 
     protected $casts = [
+        'dias_trabalho' => 'array',
         'data_admissao' => 'date',
         'data_demissao' => 'date',
         'salario_base' => 'decimal:2',
@@ -168,6 +170,19 @@ class FuncionarioContrato extends Model
         ]);
     }
 
+    // Retorna os dias trabalhados, com fallback para seg-sex
+    // public function getDiasTrabalhoAttribute(mixed $value): array
+    // {
+    //     $dias = json_decode($value, true);
+
+    //     if (empty($dias)) {
+    //         // Se não definido, assume seg a sex como padrão
+    //         return [1, 2, 3, 4, 5];
+    //     }
+
+    //     return $dias;
+    // }
+
     /**
      * Recalcula férias previstas quando data de admissão muda
      */
@@ -217,6 +232,6 @@ class FuncionarioContrato extends Model
     /**
      *  Salario Bruto
      */
-   
+
 
 }

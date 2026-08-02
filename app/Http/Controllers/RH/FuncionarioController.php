@@ -101,8 +101,10 @@ class FuncionarioController extends Controller
     }
 
 
-    public function store(FuncionarioStoreRequest $request)
+    // public function store(FuncionarioStoreRequest $request)
+    public function store(Request $request)
     {
+
 
         try {
             $funcionario = $this->funcionarioService->criarFuncionario($request->validated());
@@ -173,9 +175,14 @@ class FuncionarioController extends Controller
 
     public function update(FuncionarioUpdateRequest $request, Funcionario $funcionario)
     {
-        // dd($request->all());
-
+        // se não enviar dependentes, envia um array vazio para evitar erros
+        if (!$request->has('dependentes')) {
+            $request->merge(['dependentes' => []]);
+            
+        }
+        
         try {
+            // dd($request->validated());
             $funcionario = $this->funcionarioService->atualizarFuncionario($funcionario, $request->validated());
 
 

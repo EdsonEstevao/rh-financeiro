@@ -116,6 +116,13 @@ class FuncionarioUpdateRequest extends FormRequest
             'qtd_dependentes_ir' => ['nullable', 'integer', 'min:0', 'max:10'],
             'qtd_dependentes_salario_familia' => ['nullable', 'integer', 'min:0', 'max:10'],
 
+            // Dependentes - 🆕 ADICIONAR ESTE BLOCO
+            'dependentes' => ['nullable', 'array'],
+            'dependentes.*.nome_completo' => ['required_with:dependentes', 'string', 'max:255'],
+            'dependentes.*.data_nascimento' => ['required_with:dependentes', 'date', 'before:today'],
+            'dependentes.*.parentesco' => ['required_with:dependentes', 'string', 'max:255'],
+            'dependentes.*.invalido' => ['nullable', 'boolean'],
+
             // Observações
             'observacoes' => ['nullable', 'string', 'max:1000'],
         ];

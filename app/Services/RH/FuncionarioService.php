@@ -72,6 +72,8 @@ class FuncionarioService
      */
     public function criarFuncionario(array $dados): Funcionario
     {
+
+
         return DB::transaction(function () use ($dados) {
             // 🆕 Normaliza dias_trabalho antes de criar
             $dados['dias_trabalho'] = $this->normalizarDiasTrabalho($dados);
@@ -371,13 +373,18 @@ class FuncionarioService
      */
     public function atualizarFuncionario(Funcionario $funcionario, array $dados): Funcionario
     {
+        
         return DB::transaction(function () use ($funcionario, $dados) {
+
+            // 🆕 Extrai dependentes do array antes de usar
+            $dependentes = $dados['dependentes'] ?? null;
+            unset($dados['dependentes']);  // Remove para não dar erro no update
 
              // 🆕 Normaliza dias_trabalho antes de atualizar
             if (isset($dados['dias_trabalho']) || isset($dados['dias_trabalho_json'])) {
                 $dados['dias_trabalho'] = $this->normalizarDiasTrabalho($dados);
             }
-            
+
             // Remove o campo auxiliar
             unset($dados['dias_trabalho_json']);
 
@@ -415,11 +422,30 @@ class FuncionarioService
             $funcionario->beneficios()->updateOrCreate(
                 ['funcionario_id' => $funcionario->id],
                 $dados
-            );
+            );          
+            
+            // se não enviar dependentes, envia um array vazio para evitar erros
+            if ($dependentes === null) {
+                $dependentes = [];
+            }
 
+             // 🆕 Atualiza dependentes (separado)
+            if ($dependentes !== null) {
+                $funcionario->dependentes()->delete();
+                foreach ($dependentes as $dep) {
+                    if (!empty($dep['nome_completo'])) {
+                        $dep['ativo'] = true;
+                        $dep['invalido'] = $dep['invalido'] ?? false;
+                        $funcionario->dependentes()->create($dep);
+                    }
+                }
+            }
+
+            // ✅ CORRIGIDO - adicione 'dependentes'
             return $funcionario->fresh([
                 'endereco', 'documentos', 'contatos',
-                'dadosBancarios', 'contrato', 'beneficios'
+                'dadosBancarios', 'contrato', 'beneficios',
+                'dependentes'  // 🆕
             ]);
         });
     }

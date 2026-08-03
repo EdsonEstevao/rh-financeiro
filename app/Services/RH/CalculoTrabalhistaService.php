@@ -379,6 +379,11 @@ class CalculoTrabalhistaService
      */
     public function calcularSalarioFamilia(Funcionario $funcionario, ?Carbon $dataReferencia = null): float
     {
+         if (!$this->deveAplicarSalarioFamilia($funcionario)) {
+            return 0;
+        }
+
+        $contrato = $funcionario->contrato;
         $dependentes = $funcionario->qtd_dependentes_salario_familia ?? 0;
         $salarioBase = $funcionario->salario_base ?? 0;
 

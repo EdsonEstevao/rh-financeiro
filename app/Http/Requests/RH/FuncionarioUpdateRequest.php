@@ -122,6 +122,8 @@ class FuncionarioUpdateRequest extends FormRequest
             'dependentes.*.data_nascimento' => ['required_with:dependentes', 'date', 'before:today'],
             'dependentes.*.parentesco' => ['required_with:dependentes', 'string', 'max:255'],
             'dependentes.*.invalido' => ['nullable', 'boolean'],
+            'dependentes.*.dependente_ir' => ['nullable', 'boolean'],
+            'dependentes.*.dependente_sf' => ['nullable', 'boolean'],
 
             // Observações
             'observacoes' => ['nullable', 'string', 'max:1000'],

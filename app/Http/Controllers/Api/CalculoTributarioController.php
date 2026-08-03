@@ -9,7 +9,7 @@ use Throwable;
 
 use App\Http\Requests\RH\Api\{CalcularInssRequest, CalcularIrrfRequest};
 use App\Http\Controllers\Controller;
-use App\Models\Domain\RH\Funcionario;
+use App\Models\Domain\RH\{Funcionario, TabelaInss};
 use App\Services\RH\CalculoTributarioService;
 
 class CalculoTributarioController extends Controller
@@ -20,47 +20,7 @@ class CalculoTributarioController extends Controller
 
     /**
      * Calcula o INSS com base na tabela vigente.
-     */
-    // public function calcularInss(CalcularInssRequest $request): JsonResponse
-    // {
-    //     try {
-    //         $salario = (float) $request->input('salario');
-    //         $competencia = $request->input('competencia');
-
-    //         $resultado = $this->calculoService->calcularInss($salario, $competencia);
-
-    //         return response()->json([
-    //             'success' => true,
-    //             'inss' => $resultado['inss'],
-    //             'aliquota_efetiva' => $resultado['aliquota_efetiva'],
-    //             'detalhamento' => $resultado['detalhamento'],
-    //         ]);
-
-    //     } catch (RuntimeException $e) {
-    //         Log::warning('Cálculo INSS: ' . $e->getMessage(), [
-    //             'user_id' => Auth::id(), //auth()->id(),
-    //             'payload' => $request->validated(),
-    //         ]);
-
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => $e->getMessage(),
-    //         ], 422);
-
-    //     } catch (Throwable $e) {
-    //         Log::error('Erro inesperado ao calcular INSS', [
-    //             'error' => $e->getMessage(),
-    //             'user_id' => Auth::id(), //auth()->id(),
-    //             'payload' => $request->validated(),
-    //         ]);
-
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Erro ao calcular o INSS. Tente novamente.',
-    //         ], 500);
-    //     }
-    // }
-
+     */      
     public function calcularInss(CalcularInssRequest $request): JsonResponse
     {
         try {
@@ -166,5 +126,28 @@ class CalculoTributarioController extends Controller
             'parcela_deduzir' => $resultado['parcela_deduzir'],
             'detalhamento' => $resultado['detalhamento'],
         ]);
+    }
+
+    function getValoresSalarioFamilia(): JsonResponse
+    {
+        try {
+            $tabela = TabelaInss::where('ativo', true)->first();
+
+            return response()->json([
+                'success' => true,
+                'limite' => $tabela->limite_salario_familia ?? 1819.26,
+                'valor' => $tabela->valor_salario_familia ?? 67.54,
+            ]);
+        } catch (Throwable $e) {
+            Log::error('Erro ao obter valores do salário-família', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao obter valores do salário-família. Tente novamente.',
+            ], 500);
+        }
     }
 }

@@ -46,12 +46,16 @@ class Dependente extends Model
         'data_nascimento',
         'parentesco',
         'invalido',
+        'dependente_ir',    // 🆕
+        'dependente_sf',    // 🆕
         'ativo',
     ];
 
     protected $casts = [
         'data_nascimento' => 'date',
         'invalido' => 'boolean',
+        'dependente_ir' => 'boolean',  // 🆕
+        'dependente_sf' => 'boolean',  // 🆕
         'ativo' => 'boolean',
     ];
 

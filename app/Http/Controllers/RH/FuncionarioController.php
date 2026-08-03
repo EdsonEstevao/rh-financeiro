@@ -167,6 +167,8 @@ class FuncionarioController extends Controller
             'departamento',
         ]);
 
+        // dd($funcionario->dependentes); // Verifica se os dependentes estão sendo carregados corretamente
+
         $departamentos = Departamento::where('ativo', true)->orderBy('nome', 'asc')->get();
         $cargos = Cargo::where('ativo', true)->orderBy('titulo', 'asc')->get();
 

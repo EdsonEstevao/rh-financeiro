@@ -75,6 +75,9 @@ class FuncionarioService
 
 
         return DB::transaction(function () use ($dados) {
+            // 🆕 Extrai dependentes
+            $dependentes = $dados['dependentes'] ?? null;
+            unset($dados['dependentes']);
             // 🆕 Normaliza dias_trabalho antes de criar
             $dados['dias_trabalho'] = $this->normalizarDiasTrabalho($dados);
 
@@ -123,11 +126,32 @@ class FuncionarioService
             ]);
 
             // 8. Criar dependentes
-            if (!empty($dados['dependentes'])) {
-                foreach ($dados['dependentes'] as $dependente) {
-                    $funcionario->dependentes()->create($dependente);
+            if (!empty($dependentes)) {
+                foreach ($dependentes as $dep) {
+                    $funcionario->dependentes()->create($dep);
                 }
             }
+
+            // Após salvar dependentes, sicroniza a quantidade de dependentes
+            $qtdSf = $funcionario->dependentes()
+                    ->where('ativo', true)
+                    ->where('dependente_sf', true) // 🆕 apenas dependentes com direito a salário família
+                    ->where(function($q) {
+                        $q->where('data_nascimento', '>=', now()->subYears(14)) // até 14 anos
+                            ->orWhere('invalido', true); // ou inválido de qualquer idade
+                    })
+                    ->count();
+
+            $qtdIR = $funcionario->dependentes()
+                    ->where('ativo', true)
+                    ->where('dependente_ir', true) // 🆕 apenas dependentes com direito a IR
+                    ->count(); 
+            
+
+            $funcionario->contrato()->update([
+                'qtd_dependentes_salario_familia' => $qtdSf,
+                'qtd_dependentes_ir' => $qtdIR
+            ]);
 
             return $funcionario;
         });
@@ -440,6 +464,28 @@ class FuncionarioService
                     }
                 }
             }
+
+            // Após salvar dependentes, sicroniza a quantidade de dependentes
+            $qtdSf = $funcionario->dependentes()
+                    ->where('ativo', true)
+                    ->where('dependente_sf', true) // 🆕 apenas dependentes com direito a salário família
+                    ->where(function($q) {
+                        $q->where('data_nascimento', '>=', now()->subYears(14)) // até 14 anos
+                            ->orWhere('invalido', true); // ou inválido de qualquer idade
+                    })
+                    ->count();
+
+            $qtdIR = $funcionario->dependentes()
+                    ->where('ativo', true)
+                    ->where('dependente_ir', true) // 🆕 apenas dependentes com direito a IR
+                    ->count(); 
+            
+
+            $funcionario->contrato()->update([
+                'qtd_dependentes_salario_familia' => $qtdSf,
+                'qtd_dependentes_ir' => $qtdIR,
+                
+            ]);
 
             // ✅ CORRIGIDO - adicione 'dependentes'
             return $funcionario->fresh([

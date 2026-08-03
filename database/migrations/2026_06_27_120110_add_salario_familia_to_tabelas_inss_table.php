@@ -25,7 +25,7 @@ return new class extends Migration
     {
         Schema::table('tabelas_inss', function (Blueprint $table) {
             //
-            $table->dropColumns(['limite_salario_familia', 'valor_salario_familia']);
+            $table->dropColumn(['limite_salario_familia', 'valor_salario_familia']);
         });
     }
 };

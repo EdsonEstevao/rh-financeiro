@@ -519,7 +519,7 @@
                     }
                 },
 
-                calcularTotais() {
+                async calcularTotais() {
                     if (!this.funcionario.id) return;
 
                     const salario = this.form.salario_base;
@@ -539,7 +539,8 @@
 
                     // DSR Hora Extra: (Valor total HE ÷ dias úteis) × domingos/feriados
                     if (totalHEValor > 0 && this.diasUteis > 0) {
-                        this.dsrHoraExtraValor = Math.round((totalHEValor / this.diasUteis) * this.domingosFeriados * 100) /
+                        this.dsrHoraExtraValor = Math.round((totalHEValor / this.diasUteis) * this.domingosFeriados *
+                                100) /
                             100;
                     } else {
                         this.dsrHoraExtraValor = 0;
@@ -560,7 +561,7 @@
                         this.funcionario.tipo_contrato === 'aprendiz' || ['pj', 'autonomo'].includes(this.funcionario
                             .tipo_contratacao)) {
                         this.inss = 0;
-                        this.calcularSalarioFamilia(salario);
+                        await this.calcularSalarioFamilia(salario);
                         this.calcularArredondamento();
                         return;
                     }
@@ -629,13 +630,33 @@
                     this.calcularArredondamento();
                 },
 
-                calcularSalarioFamilia(salario) {
-                    const dependentes = this.funcionario.qtd_dependentes_salario_familia || 0;
-                    if (dependentes === 0 || salario > 1819.26) {
+                async calcularSalarioFamilia(salario) {
+                    // const dependentes = this.funcionario.qtd_dependentes_salario_familia || 0;
+                    // if (dependentes === 0 || salario > 1819.26) {
+                    //     this.salarioFamilia = 0;
+                    //     return;
+                    // }
+                    // this.salarioFamilia = Math.round(dependentes * 62.04 * 100) / 100;
+                    try {
+                        // 🆕 Busca limite e valor da API
+                        const response = await fetch('/rh/api/salario-familia');
+                        const data = await response.json();
+
+                        const limite = data.limite || 1819.26;
+                        const valorPorDependente = data.valor || 67.54;
+                        console.log('funcionario:', this.funcionario);
+                        const dependentes = this.funcionario.qtd_dependentes_salario_familia || 0;
+
+                        if (dependentes === 0 || salario > limite) {
+                            this.salarioFamilia = 0;
+                            return;
+                        }
+
+                        this.salarioFamilia = Math.round(dependentes * valorPorDependente * 100) / 100;
+                    } catch (error) {
+                        console.error('Erro ao calcular salário família:', error);
                         this.salarioFamilia = 0;
-                        return;
                     }
-                    this.salarioFamilia = Math.round(dependentes * 62.04 * 100) / 100;
                 },
 
                 calcularArredondamento() {

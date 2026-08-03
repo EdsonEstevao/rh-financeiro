@@ -839,12 +839,37 @@
                                         </select>
                                     </div>
                                     <div class="flex items-center gap-3 sm:pt-6">
-                                        <input type="hidden" :name="'dependentes[' + index + '][invalido]'"
+                                        {{-- <input type="hidden"  name="'dependentes[' + index + '][invalido]'"
                                             value="0">
-                                        <input type="checkbox" :name="'dependentes[' + index + '][invalido]'"
-                                            value="1" x-model="dep.invalido"
+                                        <input type="checkbox"  name="'dependentes[' + index + '][invalido]'"
+                                            value="1" x -model="dep.invalido"
                                             class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" />
-                                        <label class="text-xs text-gray-700">Inválido</label>
+                                        <label class="text-xs text-gray-700">Inválido</label> --}}
+
+                                        <label class="flex items-center gap-2 text-xs cursor-pointer">
+                                            <input type="hidden" :name="'dependentes[' + index + '][dependente_ir]'"
+                                                value="0">
+                                            <input type="checkbox" :name="'dependentes[' + index + '][dependente_ir]'"
+                                                value="1" x-model="dep.dependente_ir"
+                                                class="w-3.5 h-3.5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" />
+                                            <span>Dep. IR</span>
+                                        </label>
+                                        <label class="flex items-center gap-2 text-xs cursor-pointer">
+                                            <input type="hidden" :name="'dependentes[' + index + '][dependente_sf]'"
+                                                value="0">
+                                            <input type="checkbox" :name="'dependentes[' + index + '][dependente_sf]'"
+                                                value="1" x-model="dep.dependente_sf"
+                                                class="w-3.5 h-3.5 text-green-600 border-gray-300 rounded focus:ring-green-500" />
+                                            <span>Dep. Sal. Família</span>
+                                        </label>
+                                        <label class="flex items-center gap-2 text-xs cursor-pointer">
+                                            <input type="hidden" :name="'dependentes[' + index + '][invalido]'"
+                                                value="0">
+                                            <input type="checkbox" :name="'dependentes[' + index + '][invalido]'"
+                                                value="1" x-model="dep.invalido"
+                                                class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500" />
+                                            <span>Inválido</span>
+                                        </label>
                                     </div>
                                 </div>
                             </div>
@@ -929,7 +954,9 @@
                         data_nascimento: d.data_nascimento ? d.data_nascimento.toString().substring(0, 10) :
                         '', // Formata para YYYY-MM-DD || '',
                         parentesco: d.parentesco || '',
-                        invalido: d.invalido || false
+                        invalido: d.invalido || false,
+                        dependente_ir: d.dependente_ir || false, // 🆕
+                        dependente_sf: d.dependente_sf || false, // 🆕
                     })) : [],
 
                 adicionarDependente() {
@@ -937,7 +964,9 @@
                         nome_completo: '',
                         data_nascimento: '',
                         parentesco: '',
-                        invalido: false
+                        invalido: false,
+                        dependente_ir: false, // 🆕
+                        dependente_sf: false, // 🆕
                     });
                 },
 

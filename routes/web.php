@@ -202,6 +202,9 @@ Route::middleware(['auth', 'verified'])
 
             Route::post('/calcular-irrf', [CalculoTributarioController::class, 'calcularIrrf'])
                 ->name('calcular-irrf');
+
+            Route::get('/salario-familia', [CalculoTributarioController::class, 'getValoresSalarioFamilia'])
+                ->name('salario-familia');
         });
 
         // ═══════════════════════════════════════════════════════════════

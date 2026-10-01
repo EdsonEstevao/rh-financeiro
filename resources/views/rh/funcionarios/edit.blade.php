@@ -60,6 +60,9 @@
             @csrf
             @method('PUT')
 
+            {{-- Campo oculto que contém a página de origem --}}
+            <input type="hidden" name="page" value="{{ $currentPage }}">
+
             {{-- ABAS --}}
             <div class="mb-6 overflow-x-auto border-b border-gray-200">
                 <nav class="flex gap-1 -mb-px min-w-max">

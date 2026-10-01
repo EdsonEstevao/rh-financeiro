@@ -109,20 +109,6 @@
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 space-x-2 text-sm">
-                                        {{-- <a href="{{ route('rh.funcionarios.show', $funcionario) }}"
-                                            class="text-blue-600 hover:text-blue-900">Ver</a>
-                                        @can('funcionarios.edit')
-                                            <a href="{{ route('rh.funcionarios.edit', $funcionario) }}"
-                                                class="text-green-600 hover:text-green-900">Editar</a>
-                                        @endcan --}}
-                                        {{-- ✅ Demitir - só aparece para ativos --}}
-                                        {{-- @if ($funcionario->ativo)
-                                            <a href="{{ route('rh.funcionarios.demitir.form', $funcionario) }}"
-                                                class="text-red-400 hover:text-red-600" title="Demitir"
-                                                onclick="return confirm('Deseja realmente demitir {{ $funcionario->nome_completo }}?')">
-                                                🗑️
-                                            </a>
-                                        @endif --}}
                                         {{-- Dropdown de ações --}}
                                         <div class="relative" x-data="{ open: false }">
                                             <button @click="open = !open"
@@ -149,7 +135,7 @@
                                                     👁️ Visualizar
                                                 </a>
 
-                                                <a href="{{ route('rh.funcionarios.edit', $funcionario) }}"
+                                                <a href="{{ route('rh.funcionarios.edit', ['funcionario' => $funcionario, 'page' => $funcionarios->currentPage()]) }}"
                                                     class="flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-50">
                                                     ✏️ Editar
                                                 </a>

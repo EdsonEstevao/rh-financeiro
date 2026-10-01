@@ -2,17 +2,15 @@
 
 namespace App\Http\Controllers\RH;
 
-use App\Http\Controllers\Controller;
-use App\Http\Requests\RH\FuncionarioStoreRequest;
-use App\Http\Requests\RH\FuncionarioUpdateRequest;
-use App\Models\Domain\RH\Cargo;
-use App\Models\Domain\RH\Departamento;
-use App\Models\Domain\RH\Funcionario;
-use App\Services\RH\FuncionarioService;
-use App\Services\RH\PeriodoFeriasService;
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\RH\{FuncionarioStoreRequest, FuncionarioUpdateRequest};
+use App\Models\Domain\RH\{Cargo, Departamento, Funcionario};
+use App\Services\RH\{FuncionarioService, PeriodoFeriasService};
 
 class FuncionarioController extends Controller
 {
@@ -21,39 +19,6 @@ class FuncionarioController extends Controller
         private FuncionarioService $funcionarioService,
         private PeriodoFeriasService $periodoService
     ) {}
-
-    public function indexOld(Request $request)
-    {
-        $funcionarios = Funcionario::query()
-            ->with(['departamento', 'cargo', 'documentos']) // ✅ Carrega documentos
-            ->when($request->filled('search'), function ($query) use ($request) {
-                $query->where('nome_completo', 'like', "%{$request->search}%")
-                    // ✅ Busca CPF na tabela funcionario_documentos
-                    ->orWhereHas('documentos', function ($q) use ($request) {
-                        $q->where('cpf', 'like', "%{$request->search}%");
-                    });
-            })
-            ->when($request->filled('departamento_id'), function ($query) use ($request) {
-                $query->where('departamento_id', $request->departamento_id);
-            })
-            ->when($request->filled('cargo_id'), function ($query) use ($request) {
-                $query->where('cargo_id', $request->cargo_id);
-            })
-            ->when($request->boolean('apenas_ativos'), function ($query) {
-                $query->where('ativo', true);
-            })
-            ->when($request->boolean('ferias_vencendo'), function ($query) {
-                $query->feriasVencendo(30);
-            })
-            ->orderBy('nome_completo')
-            ->paginate(20)
-            ->withQueryString();
-
-        $departamentos = Departamento::query()->where('ativo', true)->orderBy('nome', 'desc')->get();
-        $cargos = Cargo::query()->where('ativo', true)->orderBy('titulo')->get();
-
-        return view('rh.funcionarios.index', compact('funcionarios', 'departamentos', 'cargos'));
-    }
 
     public function index(Request $request)
     {
@@ -148,10 +113,13 @@ class FuncionarioController extends Controller
         return view('rh.funcionarios.show', compact('funcionario'));
     }
 
-    public function edit(Funcionario $funcionario)
+    public function edit(Funcionario $funcionario, Request $request)
     {
         // $funcionario->load(['departamento', 'cargo', 'dependentes', 'periodoFerias']);
         // Carrega TODOS os relacionamentos necessários
+
+        $currentPage = $request->query('page', 1); // Obtém a página atual da query string, padrão é 1
+
         $funcionario->load([
             'endereco',
             'contatos',
@@ -169,11 +137,17 @@ class FuncionarioController extends Controller
         $departamentos = Departamento::where('ativo', true)->orderBy('nome', 'asc')->get();
         $cargos = Cargo::where('ativo', true)->orderBy('titulo', 'asc')->get();
 
-        return view('rh.funcionarios.edit', compact('funcionario', 'departamentos', 'cargos'));
+        return view('rh.funcionarios.edit', compact(
+            'funcionario',
+            'departamentos',
+            'cargos',
+            'currentPage'
+        ));
     }
 
     public function update(FuncionarioUpdateRequest $request, Funcionario $funcionario)
     {
+
         // se não enviar dependentes, envia um array vazio para evitar erros
         if (! $request->has('dependentes')) {
             $request->merge(['dependentes' => []]);
@@ -184,8 +158,19 @@ class FuncionarioController extends Controller
             // dd($request->validated());
             $funcionario = $this->funcionarioService->atualizarFuncionario($funcionario, $request->validated());
 
+            // --------- Activity Log (já vem configurado) ----------
+            activity()
+                ->causedBy(Auth::user())
+                ->performedOn($funcionario)
+                ->withProperties(['attributes' => $request->validated()])
+                ->log('Atualizou dados do funcionário');
+            // -------------------------------------------------------
+
+            // página de origem (default = 1)
+            $page = $request->input('page', 1);
+
             return redirect()
-                ->route('rh.funcionarios.show', $funcionario)
+                ->route('rh.funcionarios.index', ['page' => $page])
                 ->with('success', 'Funcionário atualizado com sucesso!');
         } catch (\Exception $e) {
             return back()

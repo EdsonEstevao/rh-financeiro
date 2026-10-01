@@ -2,26 +2,29 @@
 
 namespace App\Http\Controllers\RH;
 
-use Illuminate\Http\Request;
-use Illuminate\Database\Eloquent\Builder;
-use Carbon\Carbon;
-
-use App\Http\Requests\RH\{FuncionarioStoreRequest, FuncionarioUpdateRequest};
 use App\Http\Controllers\Controller;
-use App\Services\RH\{FuncionarioService, PeriodoFeriasService};
-use App\Models\Domain\RH\{Cargo, Departamento, Funcionario};
+use App\Http\Requests\RH\FuncionarioStoreRequest;
+use App\Http\Requests\RH\FuncionarioUpdateRequest;
+use App\Models\Domain\RH\Cargo;
+use App\Models\Domain\RH\Departamento;
+use App\Models\Domain\RH\Funcionario;
+use App\Services\RH\FuncionarioService;
+use App\Services\RH\PeriodoFeriasService;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 
 class FuncionarioController extends Controller
 {
     //
-     public function __construct(
+    public function __construct(
         private FuncionarioService $funcionarioService,
         private PeriodoFeriasService $periodoService
     ) {}
 
     public function indexOld(Request $request)
     {
-       $funcionarios = Funcionario::query()
+        $funcionarios = Funcionario::query()
             ->with(['departamento', 'cargo', 'documentos']) // ✅ Carrega documentos
             ->when($request->filled('search'), function ($query) use ($request) {
                 $query->where('nome_completo', 'like', "%{$request->search}%")
@@ -100,16 +103,14 @@ class FuncionarioController extends Controller
         return view('rh.funcionarios.create', compact('departamentos', 'cargos'));
     }
 
-
-    // public function store(FuncionarioStoreRequest $request)
-    public function store(Request $request)
+    public function store(FuncionarioStoreRequest $request)
+    // public function store(Request $request)
     {
-
 
         try {
             $funcionario = $this->funcionarioService->criarFuncionario($request->validated());
 
-             // ✅ Se clicou em "Salvar e Continuar", redireciona para edição
+            // ✅ Se clicou em "Salvar e Continuar", redireciona para edição
             $departamentos = Departamento::query()->where('ativo', true)->orderBy('nome')->get();
             $cargos = Cargo::query()->where('ativo', true)->orderBy('titulo')->get();
             if ($request->action === 'continue') {
@@ -123,14 +124,10 @@ class FuncionarioController extends Controller
                 ->route('rh.funcionarios.index')
                 ->with('success', "Funcionário {$funcionario->nome_completo} cadastrado com sucesso!");
 
-            // return redirect()
-            //     ->route('rh.funcionarios.show', $funcionario)
-            //     ->with('success', 'Funcionário cadastrado com sucesso! Período de férias calculado automaticamente.');
-
         } catch (\Exception $e) {
             return back()
                 ->withInput()
-                ->with('error', 'Erro ao cadastrar funcionário: ' . $e->getMessage());
+                ->with('error', 'Erro ao cadastrar funcionário: '.$e->getMessage());
         }
     }
 
@@ -139,12 +136,12 @@ class FuncionarioController extends Controller
         // $id = $funcionario->id;
 
         $funcionario->loadMissing(['cargo', 'departamento',
-                                    'usuario', 'periodoFerias',
-                                    'contrato', 'dependentes',
-                                    'contatos', 'documentos',
-                                    'endereco', 'dadosBancarios',
-                                    'beneficios', 'folhasPagamento',
-                                    'folhasPagamento.lancamentos']); //load(['departamento', 'cargo', 'usuario']);
+            'usuario', 'periodoFerias',
+            'contrato', 'dependentes',
+            'contatos', 'documentos',
+            'endereco', 'dadosBancarios',
+            'beneficios', 'folhasPagamento',
+            'folhasPagamento.lancamentos']); // load(['departamento', 'cargo', 'usuario']);
         // $funcionario = Funcionario::with(['cargo', 'departamento', 'usuario', 'periodoFerias'])
         //                             ->findOrFail($id);
 
@@ -154,7 +151,7 @@ class FuncionarioController extends Controller
     public function edit(Funcionario $funcionario)
     {
         // $funcionario->load(['departamento', 'cargo', 'dependentes', 'periodoFerias']);
-           // Carrega TODOS os relacionamentos necessários
+        // Carrega TODOS os relacionamentos necessários
         $funcionario->load([
             'endereco',
             'contatos',
@@ -178,16 +175,14 @@ class FuncionarioController extends Controller
     public function update(FuncionarioUpdateRequest $request, Funcionario $funcionario)
     {
         // se não enviar dependentes, envia um array vazio para evitar erros
-        if (!$request->has('dependentes')) {
+        if (! $request->has('dependentes')) {
             $request->merge(['dependentes' => []]);
-            
+
         }
-        
+
         try {
             // dd($request->validated());
             $funcionario = $this->funcionarioService->atualizarFuncionario($funcionario, $request->validated());
-
-
 
             return redirect()
                 ->route('rh.funcionarios.show', $funcionario)
@@ -195,7 +190,7 @@ class FuncionarioController extends Controller
         } catch (\Exception $e) {
             return back()
                 ->withInput()
-                ->with('error', 'Erro ao atualizar funcionário: ' . $e->getMessage());
+                ->with('error', 'Erro ao atualizar funcionário: '.$e->getMessage());
         }
     }
 
@@ -220,7 +215,7 @@ class FuncionarioController extends Controller
         }
 
         $funcionarios = Funcionario::with(['contrato'])->where('status', 'ativo')
-            ->where(function($q) use ($query) {
+            ->where(function ($q) use ($query) {
                 $q->where('nome_completo', 'like', "%{$query}%");
 
             })
@@ -240,34 +235,34 @@ class FuncionarioController extends Controller
         $dataAlerta = $hoje->copy()->addDays($diasAntes);
 
         return $query->where('ativo', true)
-            ->where(function($q) use ($hoje, $dataAlerta) {
+            ->where(function ($q) use ($hoje, $dataAlerta) {
                 // Funcionários que COMPLETARAM o período aquisitivo
                 // (periodo_aquisitivo_fim <= hoje + 30 dias)
                 $q->whereNotNull('periodo_aquisitivo_fim')
-                ->where('periodo_aquisitivo_fim', '<=', $dataAlerta->toDateString())
-                ->where('periodo_aquisitivo_fim', '>=', $hoje->copy()->subDays(30)->toDateString());
+                    ->where('periodo_aquisitivo_fim', '<=', $dataAlerta->toDateString())
+                    ->where('periodo_aquisitivo_fim', '>=', $hoje->copy()->subDays(30)->toDateString());
             })
             ->where('ferias_vencidas', false) // Não está vencida
-            ->whereDoesntHave('periodoFerias', function($q) {
+            ->whereDoesntHave('periodoFerias', function ($q) {
                 // Não tem férias agendadas/gozadas para este período
                 $q->whereIn('status', ['aprovada', 'gozada'])
-                ->where('data_inicio', '>=', now()->subYear()->toDateString());
+                    ->where('data_inicio', '>=', now()->subYear()->toDateString());
             });
     }
 
     /**
      * Demitir funcionário
      */
-
     public function formDemitir(Funcionario $funcionario)
     {
         return view('rh.funcionarios.demitir', compact('funcionario'));
     }
+
     public function demitir(Request $request, Funcionario $funcionario)
     {
         $validated = $request->validate([
-            'data_demissao' => 'required|date|after_or_equal:' . $funcionario->contrato->data_admissao,
-            'motivo'        => 'required|string|max:500',
+            'data_demissao' => 'required|date|after_or_equal:'.$funcionario->contrato->data_admissao,
+            'motivo' => 'required|string|max:500',
         ]);
 
         $dataDemissao = Carbon::parse($validated['data_demissao']);
@@ -283,7 +278,7 @@ class FuncionarioController extends Controller
         // Inativa o funcionário
         $funcionario->update([
             'ativo' => false,
-            'observacoes' => trim(($funcionario->observacoes ?? '') .
+            'observacoes' => trim(($funcionario->observacoes ?? '').
                 "\nDemitido em {$dataDemissao->format('d/m/Y')}. Motivo: {$validated['motivo']}"),
         ]);
 
@@ -293,12 +288,12 @@ class FuncionarioController extends Controller
             ->where('data_inicio', '>', $dataDemissao)
             ->update([
                 'status' => 'cancelada',
-                'observacao' => 'Cancelada devido à demissão em ' . $dataDemissao->format('d/m/Y'),
+                'observacao' => 'Cancelada devido à demissão em '.$dataDemissao->format('d/m/Y'),
             ]);
 
         return redirect()
             ->route('rh.funcionarios.show', $funcionario)
-            ->with('success', "Funcionário demitido em {$dataDemissao->format('d/m/Y')}. " .
+            ->with('success', "Funcionário demitido em {$dataDemissao->format('d/m/Y')}. ".
                     "Férias rescisórias: {$feriasRescisorias['total_dias_pagar']} dias a pagar.");
     }
 }

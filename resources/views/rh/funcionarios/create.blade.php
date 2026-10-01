@@ -653,7 +653,7 @@
 
                                 @foreach ($diasSemana as $valor => $dia)
                                     <label
-                                        class="relative flex items-center gap-2 px-4 py-3 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:border-indigo-300"
+                                        class="relative flex items-center gap-2 px-4 py-3 transition-all duration-200 border-2 rounded-lg cursor-pointer hover:border-indigo-300"
                                         :class="diasSelecionados.includes({{ $valor }}) ?
                                             'border-indigo-500 bg-indigo-50 text-indigo-700' :
                                             'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'">
@@ -678,15 +678,15 @@
                             {{-- Presets rápidos --}}
                             <div class="flex gap-2 mt-2">
                                 <button type="button" @click="diasSelecionados = [1,2,3,4,5]"
-                                    class="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors">
+                                    class="px-3 py-1 text-xs font-medium text-gray-600 transition-colors bg-gray-100 rounded-md hover:bg-gray-200">
                                     Seg a Sex
                                 </button>
                                 <button type="button" @click="diasSelecionados = [1,2,3,4,5,6]"
-                                    class="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors">
+                                    class="px-3 py-1 text-xs font-medium text-gray-600 transition-colors bg-gray-100 rounded-md hover:bg-gray-200">
                                     Seg a Sáb
                                 </button>
                                 <button type="button" @click="diasSelecionados = []"
-                                    class="px-3 py-1 text-xs font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors">
+                                    class="px-3 py-1 text-xs font-medium text-red-600 transition-colors rounded-md bg-red-50 hover:bg-red-100">
                                     Limpar
                                 </button>
                             </div>
@@ -867,8 +867,8 @@
                                             <option value="outro">Outro</option>
                                         </select>
                                     </div>
-                                    {{--  🆕 Flags 
-                                        <div class="flex flex-col gap-2 sm:pt-6"></div> 
+                                    {{--  🆕 Flags
+                                        <div class="flex flex-col gap-2 sm:pt-6"></div>
                                     --}}
                                     <div class="flex items-center gap-3 sm:pt-6">
                                         {{-- <div class="flex flex-col gap-2 sm:pt-6"> --}}
@@ -938,7 +938,7 @@
                 <div class="flex items-center gap-3">
                     {{-- ✅ Botão Salvar e Continuar --}}
                     <button type="submit" name="action" value="continue"
-                        class="inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold text-indigo-700 bg-indigo-50 rounded-md border border-indigo-200 hover:bg-indigo-100 shadow-sm">
+                        class="inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold text-indigo-700 border border-indigo-200 rounded-md shadow-sm bg-indigo-50 hover:bg-indigo-100">
                         💾 Salvar e Continuar
                     </button>
 
@@ -982,5 +982,22 @@
                 diasSelecionados: {{ Js::from(old('dias_trabalho', [1, 2, 3, 4, 5])) }}
             };
         }
+        // Formatar Cep  XXXXX-XXX
+        document.querySelector('input[name=cep]').addEventListener('input', (e) => {
+            let value = e.target.value;
+
+            // Remove tudo que não for número
+            value = value.replace(/\D/g, '');
+
+            // Limita a 8 dígitos
+            value = value.substring(0, 8);
+
+            // Aplica a máscara XXXXX-XXX
+            if (value.length > 5) {
+                value = value.replace(/^(\d{5})(\d{1,3})$/, '$1-$2');
+            }
+
+            e.target.value = value;
+        });
     </script>
 @endpush

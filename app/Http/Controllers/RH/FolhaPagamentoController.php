@@ -33,13 +33,21 @@ class FolhaPagamentoController extends Controller
 
         [$ano, $mes] = explode('-', $competencia);
 
+
         // Query base com lançamentos
         $query = FolhaPagamento::with(['funcionario.cargo', 'lancamentos'])
-            ->whereYear('competencia', $ano)  // ✅ Seguro
-            ->whereMonth('competencia', $mes); // ✅ Seguro
+                ->whereYear('competencia', $ano)
+                ->whereMonth('competencia', $mes)
+                // 🆕 JOIN com funcionários para ordenar por nome
+                ->join('funcionarios', 'folha_pagamentos.funcionario_id', '=', 'funcionarios.id')
+                ->select('folha_pagamentos.*') // Importante: seleciona apenas colunas da folha
+                ->orderBy('funcionarios.nome_completo', 'asc'); // 🆕 Ordem A-Z
+
+
 
         if ($status !== '') {
-            $query->where('status', $status);
+            // $query->where('status', $status);
+            $query->where('folha_pagamentos.status', $status); // 🆕 Especifica a tabela
         }
 
         $folhas = $query->orderBy('created_at', 'desc')->paginate(20);
@@ -360,8 +368,11 @@ class FolhaPagamentoController extends Controller
             ->withProperties(['antes' => $antes, 'depois' => $validated])
             ->log('Folha de pagamento atualizada');
 
+        // 🆕 Pega a competência da folha editada
+        $competencia = Carbon::parse($folha->competencia)->format('Y-m');
+
         return redirect()
-            ->route('rh.folha-pagamento.index', ['competencia' => now()->format('Y-m')])
+            ->route('rh.folha-pagamento.index', ['competencia' => $competencia])
             ->with('success', 'Folha de pagamento atualizada com sucesso!');
 
 

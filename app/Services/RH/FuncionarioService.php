@@ -2,10 +2,10 @@
 
 namespace App\Services\RH;
 
-use Illuminate\Support\Facades\{DB, Log};
-use Illuminate\Support\Carbon;
-
 use App\Models\Domain\RH\Funcionario;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class FuncionarioService
 {
@@ -43,21 +43,21 @@ class FuncionarioService
     //     });
     // }
 
-     /**
+    /**
      * 🆕 Normaliza o campo dias_trabalho para JSON
      * Aceita tanto array quanto string JSON
      */
     private function normalizarDiasTrabalho(array $dados): ?string
     {
         // Se veio como array (checkboxes), converte para JSON
-        if (!empty($dados['dias_trabalho']) && is_array($dados['dias_trabalho'])) {
+        if (! empty($dados['dias_trabalho']) && is_array($dados['dias_trabalho'])) {
             return json_encode(array_map('intval', $dados['dias_trabalho']));
         }
 
         // Se veio como JSON string (campo hidden)
-        if (!empty($dados['dias_trabalho_json'])) {
+        if (! empty($dados['dias_trabalho_json'])) {
             $decoded = json_decode($dados['dias_trabalho_json'], true);
-            if (is_array($decoded) && !empty($decoded)) {
+            if (is_array($decoded) && ! empty($decoded)) {
                 return json_encode(array_map('intval', $decoded));
             }
         }
@@ -66,13 +66,11 @@ class FuncionarioService
         return json_encode([1, 2, 3, 4, 5]);
     }
 
-
     /**
      * Criar funcionário completo (com todas as tabelas relacionadas)
      */
     public function criarFuncionario(array $dados): Funcionario
     {
-
 
         return DB::transaction(function () use ($dados) {
             // 🆕 Extrai dependentes
@@ -117,16 +115,16 @@ class FuncionarioService
             $funcionario->beneficios()->create($dados);
 
             // $this->criarFeriasPrevistaAoAdmitir($funcionario);
-             // ✅ RECARREGA O FUNCIONÁRIO COM TODOS OS DADOS ATUALIZADOS
+            // ✅ RECARREGA O FUNCIONÁRIO COM TODOS OS DADOS ATUALIZADOS
             $funcionario->refresh();
 
             $funcionario->load([
                 'endereco', 'documentos', 'contatos',
-                'dadosBancarios', 'contrato', 'beneficios'
+                'dadosBancarios', 'contrato', 'beneficios',
             ]);
 
             // 8. Criar dependentes
-            if (!empty($dependentes)) {
+            if (! empty($dependentes)) {
                 foreach ($dependentes as $dep) {
                     $funcionario->dependentes()->create($dep);
                 }
@@ -134,23 +132,22 @@ class FuncionarioService
 
             // Após salvar dependentes, sicroniza a quantidade de dependentes
             $qtdSf = $funcionario->dependentes()
-                    ->where('ativo', true)
-                    ->where('dependente_sf', true) // 🆕 apenas dependentes com direito a salário família
-                    ->where(function($q) {
-                        $q->where('data_nascimento', '>=', now()->subYears(14)) // até 14 anos
-                            ->orWhere('invalido', true); // ou inválido de qualquer idade
-                    })
-                    ->count();
+                ->where('ativo', true)
+                ->where('dependente_sf', true) // 🆕 apenas dependentes com direito a salário família
+                ->where(function ($q) {
+                    $q->where('data_nascimento', '>=', now()->subYears(14)) // até 14 anos
+                        ->orWhere('invalido', true); // ou inválido de qualquer idade
+                })
+                ->count();
 
             $qtdIR = $funcionario->dependentes()
-                    ->where('ativo', true)
-                    ->where('dependente_ir', true) // 🆕 apenas dependentes com direito a IR
-                    ->count(); 
-            
+                ->where('ativo', true)
+                ->where('dependente_ir', true) // 🆕 apenas dependentes com direito a IR
+                ->count();
 
             $funcionario->contrato()->update([
                 'qtd_dependentes_salario_familia' => $qtdSf,
-                'qtd_dependentes_ir' => $qtdIR
+                'qtd_dependentes_ir' => $qtdIR,
             ]);
 
             return $funcionario;
@@ -195,9 +192,9 @@ class FuncionarioService
 
         $this->periodoFeriasService->criarPeriodo($funcionario, [
             'data_inicio' => $inicioPrevisto->toDateString(),
-            'data_fim'    => $fimPrevisto->toDateString(),
-            'status'      => 'planejada',
-            'observacao'  => 'Gerado automaticamente na admissão (férias previstas).',
+            'data_fim' => $fimPrevisto->toDateString(),
+            'status' => 'planejada',
+            'observacao' => 'Gerado automaticamente na admissão (férias previstas).',
             'numero_periodo' => 1,
             'abono_pecuniario' => false,
 
@@ -250,11 +247,11 @@ class FuncionarioService
                     // Recarrega o model uma única vez
                     $funcionarioAtualizado = $funcionario->fresh();
 
-                     activity('rh')
+                    activity('rh')
                         ->performedOn($funcionarioAtualizado)
                         ->withProperties([
                             'data_admissao_anterior' => $dataAdmissaoAnterior,
-                            'data_admissao_nova'     => $dataAdmissaoNova,
+                            'data_admissao_nova' => $dataAdmissaoNova,
                         ])
                         ->log('Data de admissão alterada — férias previstas recalculadas.');
 
@@ -265,7 +262,7 @@ class FuncionarioService
                         ->whereIn('status', ['aprovada', 'gozada', 'em_gozo'])
                         ->exists();
 
-                    if (!$temFeriasEfetivadas) {
+                    if (! $temFeriasEfetivadas) {
                         $this->criarOuAtualizarFeriasPrevista($funcionarioAtualizado);
                     }
                 }
@@ -336,13 +333,13 @@ class FuncionarioService
             ->first();
 
         $dadosPeriodo = [
-            'data_inicio'       => $inicioPrevisto->toDateString(),
-            'data_fim'          => $fimPrevisto->toDateString(),
-            'tipo'              => 'prevista',
-            'status'            => 'planejada',
-            'observacao'        => 'Gerado automaticamente baseado na data de admissão.',
-            'numero_periodo'    => 1,
-            'abono_pecuniario'  => false,
+            'data_inicio' => $inicioPrevisto->toDateString(),
+            'data_fim' => $fimPrevisto->toDateString(),
+            'tipo' => 'prevista',
+            'status' => 'planejada',
+            'observacao' => 'Gerado automaticamente baseado na data de admissão.',
+            'numero_periodo' => 1,
+            'abono_pecuniario' => false,
 
         ];
 
@@ -362,7 +359,7 @@ class FuncionarioService
                 ->whereIn('status', ['aprovada', 'gozada', 'em_gozo'])
                 ->exists();
 
-            if (!$jaEfetivado) {
+            if (! $jaEfetivado) {
                 $this->periodoFeriasService->criarPeriodo($funcionario, $dadosPeriodo);
             }
         }
@@ -392,19 +389,19 @@ class FuncionarioService
     //     });
     // }
 
-     /**
+    /**
      * Atualizar funcionário completo
      */
     public function atualizarFuncionario(Funcionario $funcionario, array $dados): Funcionario
     {
-        
+
         return DB::transaction(function () use ($funcionario, $dados) {
 
             // 🆕 Extrai dependentes do array antes de usar
             $dependentes = $dados['dependentes'] ?? null;
             unset($dados['dependentes']);  // Remove para não dar erro no update
 
-             // 🆕 Normaliza dias_trabalho antes de atualizar
+            // 🆕 Normaliza dias_trabalho antes de atualizar
             if (isset($dados['dias_trabalho']) || isset($dados['dias_trabalho_json'])) {
                 $dados['dias_trabalho'] = $this->normalizarDiasTrabalho($dados);
             }
@@ -446,18 +443,18 @@ class FuncionarioService
             $funcionario->beneficios()->updateOrCreate(
                 ['funcionario_id' => $funcionario->id],
                 $dados
-            );          
-            
+            );
+
             // se não enviar dependentes, envia um array vazio para evitar erros
             if ($dependentes === null) {
                 $dependentes = [];
             }
 
-             // 🆕 Atualiza dependentes (separado)
+            // 🆕 Atualiza dependentes (separado)
             if ($dependentes !== null) {
                 $funcionario->dependentes()->delete();
                 foreach ($dependentes as $dep) {
-                    if (!empty($dep['nome_completo'])) {
+                    if (! empty($dep['nome_completo'])) {
                         $dep['ativo'] = true;
                         $dep['invalido'] = $dep['invalido'] ?? false;
                         $funcionario->dependentes()->create($dep);
@@ -467,31 +464,30 @@ class FuncionarioService
 
             // Após salvar dependentes, sicroniza a quantidade de dependentes
             $qtdSf = $funcionario->dependentes()
-                    ->where('ativo', true)
-                    ->where('dependente_sf', true) // 🆕 apenas dependentes com direito a salário família
-                    ->where(function($q) {
-                        $q->where('data_nascimento', '>=', now()->subYears(14)) // até 14 anos
-                            ->orWhere('invalido', true); // ou inválido de qualquer idade
-                    })
-                    ->count();
+                ->where('ativo', true)
+                ->where('dependente_sf', true) // 🆕 apenas dependentes com direito a salário família
+                ->where(function ($q) {
+                    $q->where('data_nascimento', '>=', now()->subYears(14)) // até 14 anos
+                        ->orWhere('invalido', true); // ou inválido de qualquer idade
+                })
+                ->count();
 
             $qtdIR = $funcionario->dependentes()
-                    ->where('ativo', true)
-                    ->where('dependente_ir', true) // 🆕 apenas dependentes com direito a IR
-                    ->count(); 
-            
+                ->where('ativo', true)
+                ->where('dependente_ir', true) // 🆕 apenas dependentes com direito a IR
+                ->count();
 
             $funcionario->contrato()->update([
                 'qtd_dependentes_salario_familia' => $qtdSf,
                 'qtd_dependentes_ir' => $qtdIR,
-                
+
             ]);
 
             // ✅ CORRIGIDO - adicione 'dependentes'
             return $funcionario->fresh([
                 'endereco', 'documentos', 'contatos',
                 'dadosBancarios', 'contrato', 'beneficios',
-                'dependentes'  // 🆕
+                'dependentes',  // 🆕
             ]);
         });
     }

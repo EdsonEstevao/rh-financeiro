@@ -14,13 +14,10 @@ class FuncionarioUpdateRequest extends FormRequest
 
     public function rules(): array
     {
-         $funcionario = $this->route('funcionario');
+        $funcionario = $this->route('funcionario');
 
-
-         $documentoId = $funcionario->documentos?->id;
-         $contatoId = $funcionario->contatos?->id;
-
-
+        $documentoId = $funcionario->documentos?->id;
+        $contatoId = $funcionario->contatos?->id;
 
         return [
             // Relacionamentos
@@ -31,11 +28,11 @@ class FuncionarioUpdateRequest extends FormRequest
             // Dados Pessoais
             'nome_completo' => ['required', 'string', 'max:255'],
             'cpf' => [
-            'required',
-            'string',
-            'size:14',
-            'regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/',
-            Rule::unique('funcionario_documentos', 'cpf')->ignore($documentoId ?? null)],
+                'required',
+                'string',
+                'size:14',
+                'regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/',
+                Rule::unique('funcionario_documentos', 'cpf')->ignore($documentoId ?? null)],
             'rg' => ['nullable', 'string', 'max:20'],
             'orgao_expedidor_rg' => ['nullable', 'string', 'max:10'],
             'data_nascimento' => ['required', 'date', 'before:today'],
@@ -45,13 +42,11 @@ class FuncionarioUpdateRequest extends FormRequest
             'naturalidade' => ['nullable', 'string', 'max:100'],
 
             // Contato
-            'telefone' => ['required', 'string', 'max:15'],
-            'celular' => ['required', 'string', 'max:15'],
+            'telefone' => ['nullable', 'string', 'max:15'],
+            'celular' => ['required', 'string', 'max:16'],
             'email' => ['nullable', 'email',
-            Rule::unique('funcionario_contatos', 'email')->ignore($contatoId ?? null)],
+                Rule::unique('funcionario_contatos', 'email')->ignore($contatoId ?? null)],
             'email_pessoal' => ['nullable', 'email'],
-
-
 
             // Endereço
             'cep' => ['required', 'string', 'regex:/^\d{5}-\d{3}$/'],
@@ -82,7 +77,7 @@ class FuncionarioUpdateRequest extends FormRequest
             'tipo_remuneracao' => ['required', Rule::in(['mensal', 'diaria', 'horaria'])],
             'salario_base' => ['nullable', 'numeric', 'min:0', 'required_if:tipo_remuneracao,mensal'],
             'valor_diaria' => ['nullable', 'numeric', 'min:0', 'required_if:tipo_remuneracao,diaria'],
-            'valor_hora'   => ['nullable', 'numeric', 'min:0', 'required_if:tipo_remuneracao,horaria'],
+            'valor_hora' => ['nullable', 'numeric', 'min:0', 'required_if:tipo_remuneracao,horaria'],
             'eh_diarista' => ['sometimes', 'boolean'],
 
             // Jornada de Trabalho/ Horários
@@ -92,10 +87,10 @@ class FuncionarioUpdateRequest extends FormRequest
             'horario_almoco_inicio' => ['required', 'date_format:H:i'],
             'horario_almoco_fim' => ['required', 'date_format:H:i'],
 
-             // Dias de trabalho
-            'dias_trabalho'       => 'nullable|array|min:1',
-            'dias_trabalho.*'     => 'integer|in:1,2,3,4,5,6',
-            'dias_trabalho_json'  => 'nullable|json',
+            // Dias de trabalho
+            'dias_trabalho' => 'nullable|array|min:1',
+            'dias_trabalho.*' => 'integer|in:1,2,3,4,5,6',
+            'dias_trabalho_json' => 'nullable|json',
 
             // Benefícios
             'vale_transporte' => ['sometimes', 'boolean'],
@@ -110,7 +105,7 @@ class FuncionarioUpdateRequest extends FormRequest
             'banco_nome' => ['required', 'string', 'max:100'],
             'agencia' => ['required', 'string', 'max:10'],
             'conta' => ['required', 'string', 'max:15'],
-            'tipo_conta' => ['required', Rule::in(['corrente', 'poupanca'])],
+            'tipo_conta' => ['required', Rule::in(['corrente', 'poupanca', 'salario'])],
 
             // Dependentes
             'qtd_dependentes_ir' => ['nullable', 'integer', 'min:0', 'max:10'],
